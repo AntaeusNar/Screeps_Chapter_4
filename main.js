@@ -8,12 +8,14 @@ const CPUhistory = 30; //length of time to keep cpu data
 
 /** Required Code */
 require('./lib.worldPosition');
+const OmniUnion = require('./class.OmniUnion');
 
 /** Global Restart Event Handling Logic */
 console.log('<<<< Global Restart Event >>>>');
 if (Memory.CpuData == undefined) {
     Memory.CpuData = [];
 }
+let omniUnion = new OmniUnion
 
 /** Main Exported Function Loop */
 module.exports.loop = function () {
@@ -26,7 +28,8 @@ module.exports.loop = function () {
     let rollingAvg = sum/CPUhistory;
     let targetNumberOfCreeps = Math.max(1, Math.floor((availableCPUperTick*percentCPUtargeted)/rollingAvg));
 
-    /** Game Run Location */
+    /** Run the Omni-Union */
+    omniUnion.run(targetNumberOfCreeps);
 
     /** End of loop CPU tracking update */
     let endCPU = Game.cpu.getUsed();
