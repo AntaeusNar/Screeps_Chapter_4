@@ -5,7 +5,7 @@
  * Lightning-fast and memory-efficient serialization of Screeps IDs, Coords, and RoomPositions
  * Code written by Muon as part of Overmind Screeps AI. Feel free to adapt as desired.
  * Package repository: https://github.com/bencbartlett/screeps-packrat
- * 
+ *
  * TypeScript version is available in the #share-thy-code channel on the Screeps Slack.
  *
  * To use: import desired functions from module, or import entire module on main and use functions from global.
