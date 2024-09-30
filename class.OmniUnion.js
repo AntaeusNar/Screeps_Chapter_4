@@ -124,7 +124,7 @@ class OmniUnion {
 
     /** Omni-Union's public Methods and Properties */
 
-        /** Get the Omni-Union's Memory
+        /** Gets the Omni-Union's Memory
          * @returns {Object} Omni-Union's memory
          */
         get memory() {
