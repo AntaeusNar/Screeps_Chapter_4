@@ -7,7 +7,7 @@ const availableCPUperTick = 20; //number of cpu new cpu we get per tick
 const CPUhistory = 30; //length of time to keep cpu data
 
 /** Required Code */
-require('./lib.worldposition');
+require('./lib.worldPosition');
 
 /** Global Restart Event Handling Logic */
 console.log('<<<< Global Restart Event >>>>');
