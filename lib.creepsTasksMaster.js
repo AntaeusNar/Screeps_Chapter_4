@@ -190,6 +190,7 @@ let taskMaster = {
                 let target = assignableTargets[y];
                 let task = assignableTasks[z];
                 // assign the creep/target/task pairing
+                // TODO: overlay a visual indication of path to target when assigning
                 creep.task = Task[task](target);
                 creep.say(task);
                 // update the workQueuedMatrix
