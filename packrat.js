@@ -102,7 +102,7 @@ function unpackId(packedId) {
 
 /**
  * Packs a list of ids as a utf-16 string. This is better than having a list of packed coords, as it avoids
- * extra commas and "" when memroy gets stringified.
+ * extra commas and "" when memory gets stringified.
  *
  * Benchmarking: average of 500ns per id to execute on shard2 public server, reduce stringified size by 81%
  */
@@ -163,7 +163,7 @@ function unpackCoordAsPos(packedCoord, roomName) {
 
 /**
  * Packs a list of coords as a utf-16 string. This is better than having a list of packed coords, as it avoids
- * extra commas and "" when memroy gets stringified.
+ * extra commas and "" when memory gets stringified.
  *
  * Benchmarking: average of 120ns per coord to execute on shard2 public server, reduce stringified size by 94%
  */
@@ -306,7 +306,7 @@ function unpackPos(chars) {
 
 /**
  * Packs a list of RoomPositions as a utf-16 string. This is better than having a list of packed RoomPositions, as it
- * avoids extra commas and "" when memroy gets stringified.
+ * avoids extra commas and "" when memory gets stringified.
  *
  * Benchmarking: average of 150ns per position to execute on shard2 public server, reduce stringified size by 95%
  */
