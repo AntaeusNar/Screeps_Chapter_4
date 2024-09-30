@@ -28,7 +28,7 @@ class WorldPosition
 	getRangeTo(point) {
 		return this.getRangeToXY(point.x, point.y);
 	}
-​
+
 	/**
 	 * @params {number} x
 	 * @params {number} y
@@ -107,7 +107,7 @@ class WorldPosition
 	}
 
 	/** Distance functions */
-​
+
 	/**
 	 * @params {Object} point
 	 * @params {number} point.x
@@ -182,7 +182,7 @@ class WorldPosition
 		return "[world pos " + this.x + "," + this.y + "]";
 	}
 }
-​
+
 Object.defineProperty(RoomObject.prototype, "wpos", {
     get: function () {
 		if(!this._wpos)
@@ -192,11 +192,11 @@ Object.defineProperty(RoomObject.prototype, "wpos", {
 	configurable: true,
 	enumerable: false
 });
-​
+
 RoomPosition.prototype.toWorldPosition = function() {
 	if(!this._wpos)
 			this._wpos = WorldPosition.fromRoomPosition(this);
 	return this._wpos;
 }
-​
+
 module.exports = WorldPosition;
