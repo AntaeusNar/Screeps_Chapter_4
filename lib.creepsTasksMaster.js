@@ -38,8 +38,11 @@ function _calcPriority(target, creep, task, workQueued=0) {
     return -17;
   }
   let maxWork = Math.min(target.possibleNeededTasks[task].workRequired - workQueued, creep.validWorkableTasks[task].workCanDo);
-  // TODO: Allow for multiroom implementation
-  let distance = target.pos.getRangeTo(creep.pos);
+
+  // TODO: This SHOULD allow for multiroom implementation
+  let distance = target.wpos.getRangeTo(creep.wpos);
+  //let distance = target.pos.getRangeTo(creep.pos);
+
   let workSpeed = maxWork/creep.validWorkableTasks[task].workSpeed;
   let ticksToWork = distance/creep.moveSpeed + workSpeed;
   // If the creep will die before completing the work, set priority to -19
