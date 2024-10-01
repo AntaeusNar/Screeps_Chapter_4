@@ -29,6 +29,9 @@ function isStoreStructure(structure) {
  * If you use Traveler, change all occurrences of creep.moveTo() to creep.travelTo()
  */
 
+// TODO: rework for multiroom travel using worldPosition
+// TODO: rework to packrat
+
 /** An abstract class for encapsulating creep actions. This generalizes the concept of "do action X to thing Y until
  * condition Z is met" and saves a lot of convoluted and duplicated code in creep logic. A Task object contains
  * the necessary logic for traveling to a target, performing a task, and realizing when a task is no longer sensible
