@@ -10,6 +10,8 @@
  *
  */
 
+const OmniUnion = require("./class.OmniUnion");
+
 /** Class defining the base Node */
 class BasicNode {
     /** Creates a Basic Node
@@ -31,7 +33,7 @@ class BasicNode {
         }
 
         // else we need to have a resourceID and destinationID
-        else if (this.resourceID != undefined && this.destinationID != undefined) {
+        else if (this.resourceID != undefined) {
             // Build the Node based on this information
             this.id = "Node_" + this.resourceID;
             this.init();
@@ -130,4 +132,15 @@ class BasicNode {
         return this._destinationRoom;
     }
 
-}
+    /** Gets the Downstream Object
+     * @returns {Object} downstream Structure Object or a dropoff RoomPos Object
+     */
+    get downstream() {
+        if (!this._downstream) {
+            this._downstream = OmniUnion.Nodes[this.downstreamID]
+        }
+    }
+
+} // End of BasicNode
+
+module.exports = BasicNode;

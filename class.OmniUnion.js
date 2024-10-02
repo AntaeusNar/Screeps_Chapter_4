@@ -2,8 +2,10 @@
 
 /** Required Code */
 const { masterTasks } = require('./lib.creepsTasksMaster');
+const Node = require('./class.Nodes.js');
 require('./prototype.spawn');
 require('./prototype.tower');
+
 
 /** Global Reset Check */
 // Omni-Union Memory
@@ -20,6 +22,14 @@ class OmniUnion {
      * @returns {Object} OmniUnion
      */
     constructor() {
+
+        // Create the empty Nodes Object
+        this.Nodes = {};
+        if (this.memory.Nodes != undefined) {
+            for (let Node in this.memory.Nodes) {
+                this.Nodes[Node] = new Node({id: Node});
+            }
+        }
 
         return this;
     }
