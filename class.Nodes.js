@@ -153,39 +153,42 @@ class BasicNode {
                  */
 
                 let deliveryOptions = [];
+                let spawnDrop = false;
                 // Check to see if there are other nodes
                 if (OmniUnion.Nodes.length > 0) {
                     // Check to see if we need to walk through rooms
-                    let roomsToCheckForNodes
+                    let roomsToCheckForNodes = Game.map.findRoute(this.room.name, this.destinationRoom.name);
+                    if (roomsToCheckForNodes.length > 0) {
+                        // Loop through every room available adding the nodes in those rooms
+                        for (let room in roomsToCheckForNodes) {
+                            for (let node of OmniUnion.Nodes) {
+                                if (node.room.name == room) {
+                                    deliveryOptions.push(node);
+                                }
+                            }
+                            if (deliveryOptions.length > 0) {
+                                break; // Breaks the loop if we have found some options
+                            }
+                        }
+                    }
                 }
-                let options = [];
-                let roomsToCheckForNodes = Game.map.findRoute(this.room.name, this.destinationRoom.name);
-                // Make sure we need to walk through the rooms
-                if (roomsToCheckForNodes.length > 0) {
 
-                }
-
-                // Check to see if we need to find a multi-room path
-                let path = undefined;
-                if (this.room.name != this.destinationRoom.name) {
-                    path = Game.map.findRoute(this.room.name, this.destinationRoom.name);
-                }
-                // Check to see if the Node is in the same room as it's destination
-                if (this.room.name == this.destinationRoom.name) {
-                    // In the same room
-                    if (this.room.storage) {
-                        // Save the id of the storage to memory
-                        this.memory.downstreamNodeID = this.room.storage.id;
-                        this._downstreamNode = this.room.storage;
+                if (deliveryOptions.length == 0) {
+                    // no nodes found, add the destination room storage or a RoomPosition object next to the spawn
+                    if (!this.destinationRoom.storage) {
+                        let spawn = this.room.find(FIND_MY_SPAWNS)[0];
+                        deliveryOptions.push(new RoomPosition(spawn.pos.x, spawn.pos.y - 1, spawn.pos.roomName));
+                        spawnDrop = true;
                     }
                     else {
-                        // No storage so a RoomPos Object it is
-                        let spawn = this.room.find(FIND_MY_SPAWNS)[0];
-                        this._downstreamNode = new RoomPosition(spawn.pos.x, spawn.pos.y -1, spawn.pos.roomName);
+                        deliveryOptions.push(this.destinationRoom.storage);
                     }
                 }
-                else {
-                    //Not in the same room as destination, look for the closest node
+
+                if (!spawnDrop) {
+                    //find the closest option by path
+                    let downstreamPath = this.resource.pos.findClosestByPath(options);
+
                 }
             }
             else {
