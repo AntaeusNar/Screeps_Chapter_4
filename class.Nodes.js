@@ -133,12 +133,67 @@ class BasicNode {
     }
 
     /** Gets the Downstream Object
+     * If there is a know downstream Node (Node container or room Storage),
+     * it returns that object.  Otherwise it returns a RoomPos Object located one square
+     * south of the room's spawn. (in the case the node is in the same room as the best
+     * controller and the room does not have a storage)
      * @returns {Object} downstream Structure Object or a dropoff RoomPos Object
      */
-    get downstream() {
-        if (!this._downstream) {
-            this._downstream = OmniUnion.Nodes[this.downstreamID]
+    get downstreamNode() {
+        if (!this._downstreamNode) {
+            if (!this.memory.downstreamNodeID) {
+
+                /** Locate and select the correct place to take the resource to
+                 * for transfure or drop.
+                 * If in the same room as the destination, we need to see if there is a storage
+                 * to take the resource to, or if we need to drop next to spawn.
+                 * If adjacent to the destination room, we need to check to see if there is a storage
+                 * in the destination room, or see if we need to drop at spawn, and also see if the
+                 * storage/spawn option is the closest by path or if there is a node closer.
+                 */
+
+                let deliveryOptions = [];
+                // Check to see if there are other nodes
+                if (OmniUnion.Nodes.length > 0) {
+                    // Check to see if we need to walk through rooms
+                    let roomsToCheckForNodes
+                }
+                let options = [];
+                let roomsToCheckForNodes = Game.map.findRoute(this.room.name, this.destinationRoom.name);
+                // Make sure we need to walk through the rooms
+                if (roomsToCheckForNodes.length > 0) {
+
+                }
+
+                // Check to see if we need to find a multi-room path
+                let path = undefined;
+                if (this.room.name != this.destinationRoom.name) {
+                    path = Game.map.findRoute(this.room.name, this.destinationRoom.name);
+                }
+                // Check to see if the Node is in the same room as it's destination
+                if (this.room.name == this.destinationRoom.name) {
+                    // In the same room
+                    if (this.room.storage) {
+                        // Save the id of the storage to memory
+                        this.memory.downstreamNodeID = this.room.storage.id;
+                        this._downstreamNode = this.room.storage;
+                    }
+                    else {
+                        // No storage so a RoomPos Object it is
+                        let spawn = this.room.find(FIND_MY_SPAWNS)[0];
+                        this._downstreamNode = new RoomPosition(spawn.pos.x, spawn.pos.y -1, spawn.pos.roomName);
+                    }
+                }
+                else {
+                    //Not in the same room as destination, look for the closest node
+                }
+            }
+            else {
+                this._downstreamNode = OmniUnion.Nodes[this.downstreamNodeID]
+            }
+
         }
+        return this._downstreamNode;
     }
 
 } // End of BasicNode
