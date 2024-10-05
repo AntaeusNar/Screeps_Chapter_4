@@ -16,11 +16,11 @@ const OmniUnion = require("./class.OmniUnion");
 
 /** Finds the best downstream node by distance and adds the needed info to memory and returns the node
  * @param {Object} this
- * @return {Object} Downstream node
+ * @return {Object} Downstream Option
  */
 function _findDownStreamNode(this) {
     /** Locate and select the correct place to take the resource to
-         * for transfure or drop.
+         * for transfer or drop.
          * If in the same room as the destination, we need to see if there is a storage
          * to take the resource to, or if we need to drop next to spawn.
          * If adjacent to the destination room, we need to check to see if there is a storage
@@ -113,7 +113,7 @@ function _findDownStreamNode(this) {
             }
         }
         this._downstreamNode = bestOption.node;
-        this._downstreamPath = bestOption.path;
+ 
         this.memory.downstreamNodeID = bestOption.node.id;
         this.memory.distanceToDestination = totalDistance
     }
@@ -248,13 +248,25 @@ class BasicNode {
      * @returns {Object} downstream Structure Object or a dropoff RoomPos Object
      */
     get downstreamNode() {
+        // Check to see if the node is cached
         if (!this._downstreamNode) {
+            /// Check to see if the node id is remembered
             if (!this.memory.downstreamNodeID) {
-                this._downstreamNode = _findDownStreamNode(self);
+                let downstreamOption = _findDownStreamNode(self);
+                this._downstreamNode = downstreamOption.node;
+                this.memory.distanceToDestination = downstreamOption.totalDistance;
+                //this.memory.downstreamPath = bestOption.path;
+                // if the node has an id, it should be remembered
+                if (this._downstreamNode.id != undefined) {
+                    this.memory.downstreamNodeID = this._downstreamNode.id;
+                }
             }
+            // The Id is remembered!
             else {
                 this._downstreamNode = OmniUnion.Nodes[this.memory.downstreamNodeID];
+                // Check to see if we found the node in the game
                 if (!this._downstreamNode) {
+                    // Nope, it is a storage
                     this._downstreamNode = Game.structures[this.memory.downstreamNodeID];
                 }
             }
