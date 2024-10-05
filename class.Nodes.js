@@ -159,8 +159,6 @@ class BasicNode {
     /** Initializes the Node (Runs as part of the construction) */
     init() {
         // TODO: set Prime
-        // TODO: set Downstream Object
-        // TODO: check set path to Downstream Object
         // TODO: Check set POS
         // TODO: check/build Container
         // TODO: check/build the roads
