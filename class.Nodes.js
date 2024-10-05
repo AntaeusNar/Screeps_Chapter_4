@@ -12,6 +12,114 @@
 
 const OmniUnion = require("./class.OmniUnion");
 
+/** Additional private functions */
+
+/** Finds the best downstream node by distance and adds the needed info to memory and returns the node
+ * @param {Object} this
+ * @return {Object} Downstream node
+ */
+function _findDownStreamNode(this) {
+    /** Locate and select the correct place to take the resource to
+         * for transfure or drop.
+         * If in the same room as the destination, we need to see if there is a storage
+         * to take the resource to, or if we need to drop next to spawn.
+         * If adjacent to the destination room, we need to check to see if there is a storage
+         * in the destination room, or see if we need to drop at spawn, and also see if the
+         * storage/spawn option is the closest by path or if there is a node closer.
+         */
+
+    let deliveryOptions = [];
+    let spawnDrop = false;
+    // Check to see if there are other nodes
+    if (OmniUnion.Nodes.length > 0) {
+        // Check to see if we need to walk through rooms
+        let roomsToCheckForNodes = Game.map.findRoute(this.room.name, this.destinationRoom.name);
+        if (roomsToCheckForNodes.length > 0) {
+            // Loop through every room available adding the nodes in those rooms
+            for (let room in roomsToCheckForNodes) {
+                for (let node of OmniUnion.Nodes) {
+                    if (node.room.name == room) {
+                        deliveryOptions.push(node);
+                    }
+                }
+                if (deliveryOptions.length > 0) {
+                    break; // Breaks the loop if we have found some options
+                }
+            }
+        }
+    }
+
+    // Check to see if there are No delivery Options (nodes only), if this node is IN the destination room, or if this node is NEXT to the destination room
+    if (deliveryOptions.length == 0 ||
+        this.room.name == this.destinationRoom.name ||
+        Game.map.getRoomLinearDistance(this.room.name, this.destinationRoom.name) == 1 ) {
+            // Check to see if there is NOT a storage in the destination room
+        if (!this.destinationRoom.storage) {
+            // add the tile 1 south of the spawn to the options
+            let spawn = this.room.find(FIND_MY_SPAWNS)[0];
+            deliveryOptions.push(new RoomPosition(spawn.pos.x, spawn.pos.y - 1, spawn.pos.roomName));
+            spawnDrop = true;
+        }
+        else {
+            // There is a storage in the destination room, add it as an option
+            deliveryOptions.push(this.destinationRoom.storage);
+        }
+    }
+
+    // Find the closest option by path + the options distance to the final destination
+    let bestOption = {
+        node: {},
+        distance: 8000,
+        path:[]
+    }
+    let totalDistance = 0
+    for (let option in deliveryOptions) {
+        let path = this.resource.pos.findPathTo(option);
+
+        // check to make sure the option has a distance to the destination (not true for the storage or the spawn pos)
+        if (option.totalDistance != undefined) {
+            totalDistance = option.distanceToDestination + path.length;
+        }
+        else {
+            totalDistance = path.length
+        }
+
+        // Check to see if the current totalDistance is the shortest distance we have see
+        if (totalDistance < bestOption.distance) {
+            bestOption.node = option;
+            bestOption.distance = totalDistance;
+            bestOption.path = path;
+        }
+    }
+
+    // Now that the best option has been selected
+
+    /**
+    if (!spawnDrop) {
+        //find the closest option by path + option distance to final destination
+        let bestOption = {
+            node: {},
+            distance: 80000,
+            path: [],
+        }
+        let totalDistance = 0
+        for (let option in deliveryOptions) {
+            let path = this.resource.pos.findPathTo(option);
+            totalDistance = option.distanceToDestination + path.length;
+            if (totalDistance < bestOption.distance) {
+                bestOption.node = option;
+                bestOption.distance = totalDistance;
+                bestOption.path = path;
+            }
+        }
+        this._downstreamNode = bestOption.node;
+        this._downstreamPath = bestOption.path;
+        this.memory.downstreamNodeID = bestOption.node.id;
+        this.memory.distanceToDestination = totalDistance
+    }
+        */
+}
+
 /** Class defining the base Node */
 class BasicNode {
     /** Creates a Basic Node
@@ -142,57 +250,13 @@ class BasicNode {
     get downstreamNode() {
         if (!this._downstreamNode) {
             if (!this.memory.downstreamNodeID) {
-
-                /** Locate and select the correct place to take the resource to
-                 * for transfure or drop.
-                 * If in the same room as the destination, we need to see if there is a storage
-                 * to take the resource to, or if we need to drop next to spawn.
-                 * If adjacent to the destination room, we need to check to see if there is a storage
-                 * in the destination room, or see if we need to drop at spawn, and also see if the
-                 * storage/spawn option is the closest by path or if there is a node closer.
-                 */
-
-                let deliveryOptions = [];
-                let spawnDrop = false;
-                // Check to see if there are other nodes
-                if (OmniUnion.Nodes.length > 0) {
-                    // Check to see if we need to walk through rooms
-                    let roomsToCheckForNodes = Game.map.findRoute(this.room.name, this.destinationRoom.name);
-                    if (roomsToCheckForNodes.length > 0) {
-                        // Loop through every room available adding the nodes in those rooms
-                        for (let room in roomsToCheckForNodes) {
-                            for (let node of OmniUnion.Nodes) {
-                                if (node.room.name == room) {
-                                    deliveryOptions.push(node);
-                                }
-                            }
-                            if (deliveryOptions.length > 0) {
-                                break; // Breaks the loop if we have found some options
-                            }
-                        }
-                    }
-                }
-
-                if (deliveryOptions.length == 0) {
-                    // no nodes found, add the destination room storage or a RoomPosition object next to the spawn
-                    if (!this.destinationRoom.storage) {
-                        let spawn = this.room.find(FIND_MY_SPAWNS)[0];
-                        deliveryOptions.push(new RoomPosition(spawn.pos.x, spawn.pos.y - 1, spawn.pos.roomName));
-                        spawnDrop = true;
-                    }
-                    else {
-                        deliveryOptions.push(this.destinationRoom.storage);
-                    }
-                }
-
-                if (!spawnDrop) {
-                    //find the closest option by path
-                    let downstreamPath = this.resource.pos.findClosestByPath(options);
-
-                }
+                this._downstreamNode = _findDownStreamNode(self);
             }
             else {
-                this._downstreamNode = OmniUnion.Nodes[this.downstreamNodeID]
+                this._downstreamNode = OmniUnion.Nodes[this.memory.downstreamNodeID];
+                if (!this._downstreamNode) {
+                    this._downstreamNode = Game.structures[this.memory.downstreamNodeID];
+                }
             }
 
         }
