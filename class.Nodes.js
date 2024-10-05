@@ -1,3 +1,439 @@
+/** Nodes are the foundational backbone of transportation logistics
+ * At the foundational level Nodes collect resources and push them downstream to the closest claimed room.
+ * Nodes are a collection of creeps, structures and logic that allow for this functionality.
+ */
+
+/** The Game must have a location for the Nodes */
+if (Game.Nodes == undefined) {
+    Game.Nodes = {};
+}
+if (Memory.Nodes == undefined) {
+    Memory.Nodes = {};
+}
+
+/** Background constants */
+// Update rate once every 12 hours (5 sec per tick, 12hr * 60Min * 60sec/5sec)
+const updateTicks = (12*60*60)/5;
+
+/** Normal game objects must be able to link to nodes */
+
+/** DRY function for Sources, Minerals, Spawns */
+const _getNode = {
+    get: function() {
+        // Check for Cached
+        if (!this._node) {
+            // Check for Node in Game
+            if (!Game.Nodes[this.id]) {
+                // Check for Node in Memory
+                if (!Memory.Nodes[id]) {
+                    // Create a new Node from id
+                    Game.Nodes[this.id] = new Node(fromMemory = false, this.id);
+                }
+                else {
+                    // Create a new Node from Memory
+                    Game.Nodes[this.id] = new Node(fromMemory = true, Memory.Nodes[this.id]);
+                }
+            }
+            this._node = Game.Nodes[this.id];
+        }
+        return this._node;
+    }
+}
+
+/** Sources */
+Object.defineProperty(Source.prototype, 'node', _getNode);
+
+/** Minerals */
+Object.defineProperty(Mineral.prototype, 'node', _getNode);
+
+/** Spawns */
+Object.defineProperty(StructureSpawn.prototype, 'node', _getNode);
+
+/** Containers */
+Object.defineProperty(StructureContainer.prototype, 'node', {
+    get: function() {
+        if (!this._node) {
+            // Look 1 space away for Sources and Minerals
+            let options = [];
+            options.push(this.pos.findInRange(FIND_SOURCES, 1));
+            options.push(this.pos.findInRange(FIND_MINERALS, 1));
+            // If no options, this container is NOT part of a node
+            if (options.length == 0) {
+                return undefined;
+            }
+            else {
+                // Check in the Game and Memory for a Node
+                for (let option of options) {
+                    if (!Game.Nodes[option.id]) {
+                        if (!Memory.Nodes[option.id]) {
+                            // nothing found
+                        }
+                        else {
+                            // Found in Memory
+                            Game.Nodes[option.id] = new Node(fromMemory = true, Memory.Nodes[option.id]);
+                            this._node = Game.Nodes[option.id];
+                            return this._node;
+                        }
+                    }
+                    else {
+                        // Found in Game
+                        this._node = Game.Nodes[option.id];
+                        return this._node;
+                    }
+                }
+                // Only way to get here is if there are options but no node
+                Game.Nodes[options[0].id] = new Node(fromMemory = false, options[0].id);
+                this._node = Game.Nodes[options[0].id];
+            }
+        }
+        return this._node;
+    }
+});
+
+/** Storage */
+Object.defineProperty(StructureStorage.prototype, 'node', {
+    get: function() {
+        if (!this._node) {
+            // look 2 spaces away for spawns
+            let options = [];
+            options.push(this.pos.findInRange(FIND_MY_SPAWNS, 2));
+            // If no options, this storage is NOT part of a node
+            if (options.length == 0) {
+                return undefined;
+            }
+            else {
+                // IMPROVE: DRY this with the Container logic
+                // Check in the Game and Memory for a Node
+                for (let option of options) {
+                    if (!Game.Nodes[option.id]) {
+                        if (!Memory.Nodes[option.id]) {
+                            // nothing found
+                        }
+                        else {
+                            // Found in Memory
+                            Game.Nodes[option.id] = new Node(fromMemory = true, Memory.Nodes[option.id]);
+                            this._node = Game.Nodes[option.id];
+                            return this._node;
+                        }
+                    }
+                    else {
+                        // Found in Game
+                        this._node = Game.Nodes[option.id];
+                        return this._node;
+                    }
+                }
+                // Only way to get here is if there are options but no node
+                Game.Nodes[options[0].id] = new Node(fromMemory = false, options[0].id);
+                this._node = Game.Nodes[options[0].id];
+            }
+
+        }
+        return this._node;
+    }
+});
+
+/** Extractors */
+Object.defineProperty(StructureExtractor.prototype, 'node', {
+    get: function() {
+        if (!this._node) {
+            // Get the ID of the Mineral this is placed on
+            let mineral = this.pos.findInRange(FIND_MINERALS, 0);
+            this._node = Game.Nodes[mineral.id];
+            // Still no node && there is one in memory
+            if (!this._node || Memory.Nodes[mineral.id] != undefined) {
+                Game.Nodes[mineral.id] = new Node(fromMemory = true, Memory.Nodes[mineral.id]);
+                this._node = Game.Nodes[mineral.id];
+            }
+            else {
+                //No node in memory or in game... make a bitch
+                Game.Nodes[mineral.id] = new Node(fromMemory = false, mineral.id);
+                this._node = Game.Nodes[mineral.id];
+            }
+        }
+        return this._node
+    }
+});
+
+/** Creeps */
+Object.defineProperty(Creep.prototype, 'node', {
+    get: function() {
+        if (!this._node) {
+            //Should it have a node?
+            if (!this.memory.nodeID) {
+                //nope not a node creep
+                return undefined;
+            }
+            else {
+                this._node = Game.Nodes[this.memory.nodeID];
+            }
+        }
+        return this._node;
+    }
+});
+
+/**
+ * Class defining a Node
+ */
+class Node {
+    /**
+     * Creates a Node
+     * @param {Boolean} fromMemory - flag if the creation is from member
+     * @param {Object|String} scope - Memory Object or id string
+     * @returns {Node} newly created Node
+     */
+    constructor(fromMemory, scope) {
+        if (fromMemory) {
+            // Build this from Memory
+            for (let prop in scope) {
+                this[prop] = scope[prop];
+            };
+            return this;
+        }
+        else {
+            // Build this from ID
+            // Validate that the id is from something that can be seen
+            let requestor = Game.getObjectById({id: scope});
+            if (requestor != null) {
+                // Common items
+                /** @member {String} id*/
+                this.id = requestor.id;
+                /** @member {Room} room - {@link room} object*/
+                this.room = requestor.room;
+                /** @member {String} roomName - name of the room */
+                this.roomName = this.room.roomName;
+
+                if (requestor instanceof Source || requestor instanceof Mineral) {
+                    /** @member {Boolean} finalDrop - True if the last stop in the chain */
+                    this.finalDrop = false;
+                    /** @member {String} resourceID - id of the resource */
+                    this.resourceID = this.id;
+                    /** @member {Source|Mineral} - {@link Source} or {@link Mineral} that is the resource */
+                    this.resource = requestor;
+                    /** @member {String} nodeType - the type of node */
+                    this.nodeType = 'Production';
+                }
+                else if (requestor instanceof StructureSpawn) {
+                    this.resourceID = null;
+                    this.resource = null;
+                    this.nodeType = 'Final';
+                    this.finalDrop = true;
+                    this.finalDistance = 0;
+                    this.distance = 0;
+                    this.nextNodeId = this.id;
+                    this.finalNodeId = this.id;
+
+                }
+                else {
+                    // TODO: throw an error of some kind
+                }
+            }
+            else {
+                // TODO: throw an error of some kind
+            }
+        }
+
+        return this;
+    }
+
+    /** Gets the Memory Object
+     * @returns {Object} memory
+     */
+    get memory() {
+        return Memory.Nodes[this.id] || {};
+    }
+
+    /** Sets the Memory Object
+     * @param {*} value
+     */
+    set memory(value) {
+        Memory.Nodes[this.id] = value;
+    }
+
+    /** Private function to find closest destination
+     * Should be run if the node has no idea or if the update needs run
+     * @private
+     * @returns {String} id of best destination node
+     */
+    _findDestinationNodeId() {
+        let finalOptions = [];
+        if (Game.Nodes.length > 0) {
+            deliveryOptions.push(_.filter(Game.Nodes, function(o) {
+                return o.finalDrop;
+            }));
+            if (deliveryOptions.length > 0) {
+                let bestOption = {
+                    node: {},
+                    distance: 8000
+                }
+                let distance = 0;
+                for (let option in deliveryOptions) {
+                    distance = Game.Map.findRoute(this.room.name, option.room.name).length;
+                    if (distance < bestOption.distance) {
+                        bestOption.node = option;
+                        bestOption.distance = distance;
+                    }
+                }
+                return bestOption.node.id;
+
+            }
+            else {
+                // TODO: Throw an error here
+            }
+        }
+        else {
+            // TODO: Throw an error here
+        }
+    }
+
+    /** Private function to find best downstream Node
+     * @private
+     * @returns {Node} Downstream Node
+     */
+    _findDownStreamNode() {
+        /** Locates the best place to take the resources to for transfer or drop */
+        let deliveryOptions = [];
+        // Check first to see if there are other nodes
+        if (Game.Nodes.length > 0) {
+            let routeToCheckForNodes = Game.map.findRoute(this.room.name, this.finalNode.room.name);
+            let roomsToCheckForNodes = []
+            roomsToCheckForNodes.push(this.room.name);
+            for (let route in routeToCheckForNodes) {
+                roomsToCheckForNodes.push(route.room);
+            }
+            for (let room in roomsToCheckForNodes) {
+                for (let node of Game.Nodes) {
+                    if (node.room.name == room) {
+                        deliveryOptions.push(node);
+                    }
+                }
+            }
+            // TODO: finish this up
+
+        }
+        else {
+            // No other nodes
+            // TODO: throw an error of some kind
+            return null;
+        }
+    }
+
+}
+
+let test = new Node(false, "1");
+
+test.
+
+
+
+
+
+
+
+
+
+
+
+
+
+/** Nodes form the backbone of resource transportation routes for the Omni-Union.
+ * 
+ * Nodes are delivery points, production points, and can group a number of features and structures together.
+ * Nodes can be upgraded (spawn delivery node to storage delivery node) or are gated (mineral nodes can't have miners or extractors until the room is at level 6)
+ *
+ * Due the many types and usages of nodes we will need to be able to create nodes from many
+ * different types of information and run and number of checks to make sure there is not a node there already
+ * plus upgrade the nodes functionality as room levels and needs increase.
+ */
+
+/** Node Class
+ * 
+ */
+class Node {
+    /** 
+     * Constructs the Node
+     * @param {String} id - id of proposed node (must match the id of a source, deposit, mineral, powerbank, spawn, or storage)
+     * @returns {Node} The Node
+     */
+    constructor(id) {
+        // validate that this is an id of something
+        let requestedCreationObject = Game.getObjectById({id: id});
+        if (requestedCreationObject != null) {
+            // valid object that can be seen
+            if (requestedCreationObject instanceof Source || 
+                requestedCreationObject instanceof Deposit || 
+                requestedCreationObject instanceof Mineral || 
+                requestedCreationObject instanceof StructurePowerBank ||
+                requestedCreationObject instanceof StructureSpawn ||
+                requestedCreationObject instanceof StructureStorage ||
+                requestedCreationObject instanceof 
+            ) {
+                // correct kind of object to be looked for
+            }
+        }
+        // Check to see if this node is in memory
+        if (Memory.Nodes[id] != undefined) {
+
+        }
+
+        // Check to see if the node was generated under a different id (final destination Nodes will be created via spawner before there is a storage)
+        let creatorStructure = Game.structures[id];
+        if (creatorStructure != undefined) {
+            let idOptions = creatorStructure.room.find(FIND_MY_STRUCTURES, {
+                filter: (structure) => {
+                    return (structure.structureType == STRUCTURE_STORAGE || structure.structureType == STRUCTURE_SPAWN);
+                }
+            })
+        }
+    }
+}
+/** function that will create the correct type of node and make sure that we are not duplicating nodes
+ * Nodes can be created based off of an ID (if there is one that was created before and needs to be connected to a memory instance and rebuilt)
+ * Additionally if given a Source, Deposit, Mineral, PowerBank, StructureSpawn, StructureStorage, or StructureContainer
+ */
+function createNode() {
+    /** sort out what kind of information we are provided to create a new node */
+}
+/**
+ * Resource Production Tracking
+ * @typedef {Object} prodTrack
+ * @property {number} energy - per tick energy.
+ * @property {number} power - per tick power.
+ * @property {Object} minerals - each mineral amount per tick.
+ * @property {Object} commodities - each commodity amount per tick.
+ */
+
+/**
+ * The BaseNode definition
+ * @typedef {Object} BaseNode
+ * @property {StructureStorage|StructureContainer|StructureSpawn} dropOff - link to the node's physical drop.
+ * @property {Boolean} finalDrop - True if this is the final dropoff point for a chain.
+ * @property {Object} memory - link to the Node's memory object.
+ * @property {Room} room - link to the Node's Room Object.
+ * @property {String} id - id of the Node.
+ * @property {prodTrack} prodTrack - object tracking amount of each resource pushed out from this node per tick.
+ * @property {string} nodeType - string containing the node type.
+ */
+
+/**
+ * The ChainNode definition, extends baseNode
+ * @typedef {Object} ChainNode
+ * @property {String} nextNodeId - id of the next downstream Node.
+ * @property {String} finalNodeId - id of the final downstream Node.
+ * @property {BaseNode|ChainNode|ProdNode} nextNode - link to the next downstream Node.
+ * @property {BaseNode} finalNode - link to the final downstream Node.
+ * @property {Number} finalDistance - distance from this node to the final node.
+ * @property {Number} distance - distance from this node to next downstream node.
+ * @property {Array} path - array describing the path from this node to the next downstream node.
+ * @property {Creep[]} freighters - array of freighter {@link Creep}s.
+ */
+
+/**
+ * The ProdNode definition, extends chainNode
+ * @typedef {Object} ProdNode
+ * @property {Source|Mineral|Deposit|PowerBank} resource - a {@link Source}, {@link Mineral}, {@link Deposit}, or {@link PowerBank}.
+ * @property {Creep[]} miners - array of miner {@link Creep}s
+ */
+
 /** Nodes are the building blocks of transportation routes for the Omni-Union
  *
  * The idea is that a Node exists as a base class that is extendable under different
