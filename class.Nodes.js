@@ -194,56 +194,54 @@ class Node {
             for (let prop in scope) {
                 this[prop] = scope[prop];
             };
-            return this;
         }
         else {
             // Build this from ID
             // Validate that the id is from something that can be seen
             let requestor = Game.getObjectById({id: scope});
-            if (requestor != null) {
-                // Common items
-                /** @member {String} id*/
-                this.id = requestor.id;
-                /** @member {Room} room - {@link room} object*/
-                this.room = requestor.room;
-                /** @member {String} roomName - name of the room */
-                this.roomName = this.room.roomName;
-                /** @member {Number} updateTick - tick the node was last updated*/
-                this.lastUpdate = Game.time;
-
-                if (requestor instanceof Source || requestor instanceof Mineral) {
-                    /** @member {Boolean} finalDrop - True if the last stop in the chain */
-                    this.finalDrop = false;
-                    /** @member {String} nodeType - the type of node */
-                    this.nodeType = 'Production';
-                    /** @member {String} resourceID - id of the resource */
-                    this.resourceID = this.id;
-                    /** @member {Source|Mineral} - {@link Source} or {@link Mineral} that is the resource */
-                    this.resource = requestor;
-
-
-                }
-                else if (requestor instanceof StructureSpawn) {
-                    this.finalDrop = true;
-                    this.nodeType = 'Final';
-                    this.finalNodeId = this.id;
-                    this.finalNode = null;
-                    this.finalDistance = 0;
-                    this.nextNodeId = this.id;
-                    this.nextNode = null;
-                    this.nextDistance = 0;
-                    this.resourceID = null;
-                    this.resource = null;
-                }
-                else {
-                    // TODO: throw an error of some kind
-                }
+            if (requestor == null ||
+                !(requestor instanceof Source) ||
+                !(requestor instanceof Mineral) ||
+                !(requestor instanceof StructureSpawn)
+            ) {
+                // This node cannot be built w/ this info.
+                return ERR_INVALID_ARGS;
             }
-            else {
-                // TODO: throw an error of some kind
+            // Common items
+            /** @member {String} id*/
+            this.id = requestor.id;
+            /** @member {Room} room - {@link room} object*/
+            this.room = requestor.room;
+            /** @member {String} roomName - name of the room */
+            this.roomName = this.room.roomName;
+            /** @member {Number} updateTick - tick the node was last updated*/
+            this.lastUpdate = Game.time;
+
+            if (requestor instanceof Source || requestor instanceof Mineral) {
+                /** @member {Boolean} finalDrop - True if the last stop in the chain */
+                this.finalDrop = false;
+                /** @member {String} nodeType - the type of node */
+                this.nodeType = 'Production';
+                /** @member {String} resourceID - id of the resource */
+                this.resourceID = this.id;
+                /** @member {Source|Mineral} - {@link Source} or {@link Mineral} that is the resource */
+                this.resource = requestor;
+
+
+            }
+            else if (requestor instanceof StructureSpawn) {
+                this.finalDrop = true;
+                this.nodeType = 'Final';
+                this.finalNodeId = this.id;
+                this.finalNode = null;
+                this.finalDistance = 0;
+                this.nextNodeId = this.id;
+                this.nextNode = null;
+                this.nextDistance = 0;
+                this.resourceID = null;
+                this.resource = null;
             }
         }
-
         return this;
     } // End of constructor
 
