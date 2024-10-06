@@ -201,6 +201,7 @@ class Node {
                 this.room = requestor.room;
                 /** @member {String} roomName - name of the room */
                 this.roomName = this.room.roomName;
+                /** @member {Number} updateTick - tick the node was last updated*/
 
                 if (requestor instanceof Source || requestor instanceof Mineral) {
                     /** @member {Boolean} finalDrop - True if the last stop in the chain */
@@ -235,6 +236,15 @@ class Node {
         return this;
     }
 
+    /** Gets the Final Node ID
+     * @returns {String} Final Node Id
+     */
+    get finalNodeId() {
+        if (!this._finalNodeId) {
+            if (!this.memory.finalNodeId || )
+        }
+    }
+
     /** Gets the Memory Object
      * @returns {Object} memory
      */
@@ -254,7 +264,7 @@ class Node {
      * @private
      * @returns {String} id of best destination node
      */
-    _findDestinationNodeId() {
+    _findFinalNodeId() {
         let finalOptions = [];
         if (Game.Nodes.length > 0) {
             deliveryOptions.push(_.filter(Game.Nodes, function(o) {
@@ -287,9 +297,9 @@ class Node {
 
     /** Private function to find best downstream Node
      * @private
-     * @returns {Node} Downstream Node
+     * @returns {String} Id of the next downstream node in the chain
      */
-    _findDownStreamNode() {
+    _findNextNodeId() {
         /** Locates the best place to take the resources to for transfer or drop */
         let deliveryOptions = [];
         // Check first to see if there are other nodes
@@ -307,8 +317,22 @@ class Node {
                     }
                 }
             }
-            // TODO: finish this up
 
+            let bestOption = {
+                node: {},
+                distance: 8000
+            }
+            let totalDistance = 0;
+            for (let option in deliveryOptions) {
+                let path = this.resource.pos.findPathTo(option);
+                totalDistance = path.length + option.finalDistance;
+                if (totalDistance < bestOption.distance) {
+                    bestOption.node = option;
+                    bestOption.distance = totalDistance;
+                }
+            }
+
+            return bestOption.node;
         }
         else {
             // No other nodes
