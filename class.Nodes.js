@@ -175,6 +175,13 @@ Object.defineProperty(Creep.prototype, 'node', {
  * Class defining a Node
  */
 class Node {
+
+    // TODO: RoomPos Object
+    // TODO: Containers
+    // TODO: Roads
+    // TODO: Room link
+    // TODO: Controller Link
+    // TODO: Resource link
     /**
      * Creates a Node
      * @param {Boolean} fromMemory - flag if the creation is from member
@@ -219,10 +226,14 @@ class Node {
                 else if (requestor instanceof StructureSpawn) {
                     this.finalDrop = true;
                     this.nodeType = 'Final';
+                    this.finalNodeId = this.id;
+                    this.finalNode = null;
+                    this.finalDistance = 0;
+                    this.nextNodeId = this.id;
+                    this.nextNode = null;
+                    this.nextDistance = 0;
                     this.resourceID = null;
                     this.resource = null;
-                    this.finalDistance = 0;
-                    this.distance = 0;
                 }
                 else {
                     // TODO: throw an error of some kind
@@ -234,9 +245,9 @@ class Node {
         }
 
         return this;
-    }
+    } // End of constructor
 
-    /** Gets the Final Node ID
+    /** Gets the final Node ID
      * @returns {String} Final Node Id
      */
     get finalNodeId() {
@@ -245,15 +256,32 @@ class Node {
         }
         if (!this._finalNodeId) {
             if (!this.memory.finalNodeId || (Game.time - this.lastUpdate) > updateTicks) {
-                let finalNodeId = this._findFinalNodeId();
-                this.memory.finalNodeId = finalNodeId;
-                this._finalNodeId = finalNodeId;
+                this._updateDownstream();
             }
-            else {
-                this._finalNodeId = this.memory.finalNodeId;
-            }
+            this._finalNodeId = this.memory.finalNodeId;
         }
         return this._finalNodeId;
+    }
+
+    set finalNodeId(id) {
+        this.memory.finalNodeId = id;
+    }
+
+    get finalNode() {
+        if (this.finalDrop) {
+            return null;
+        }
+        if (!this._finalNode) {
+            this._finalNode = Game.Nodes[this.finalNodeId];
+        }
+        return this._finalNode;
+    }
+
+    set finalNode(node) {
+        if (node instanceof Node) {
+            this.finalNodeId = node.id;
+            this._finalNode = node;
+        }
     }
 
     /** Gets the next downstream node id
@@ -265,18 +293,32 @@ class Node {
         }
         if (!this._nextNodeId) {
             if (!this.memory.nextNodeId || (Game.time = this.lastUpdate) > updateTicks) {
-                let results = this._findNextNodeId();
-                this.memory.nextNodeId = results.nextNodeId;
-                this.nextDistance = results.nextDistance;
-                this.finalDistance = results.finalDistance;
-                this._nextNodeId = nextNodeId;
-                // TODO: finish saving or updating the next and final distances
+                this._updateDownstream();
             }
-            else {
-                this._nextNodeId = this.memory.nextNodeId;
-            }
+            this._nextNodeId = this.memory.nextNodeId;
         }
         return this._nextNodeId;
+    }
+
+    set nextNodeId(id) {
+        this.memory.nextNodeId = id;
+    }
+
+    get nextNode() {
+        if (this.finalDrop) {
+            return null;
+        }
+        if (!this._nextNode) {
+            this._nextNode = Game.Nodes[this.nextNodeId];
+        }
+        return this._nextNode;
+    }
+
+    set nextNode(node) {
+        if (node instanceof Node) {
+            this.nextNodeId = node.id;
+            this._nextNode = node;
+        }
     }
 
     /** Gets the Memory Object
@@ -293,111 +335,129 @@ class Node {
         Memory.Nodes[this.id] = value;
     }
 
-    /** Private function to find closest destination
-     * Should be run if the node has no idea or if the update needs run
+    /** Function to update the node's downstream all at once.
+     * Should only be called in the case that either the node does not know where the downstream is,
+     * OR after about 12 hours have passed.
      * @private
-     * @returns {String} id of best destination node
      */
-    _findFinalNodeId() {
+    _updateDownstream() {
+        // If this node is a final node, update and return.
+        if (this.finalDrop || this.nodeType == 'Final') {
+            this.finalDrop = true;
+            this.nodeType = 'Final';
+            this.finalNodeId = this.id;
+            this.finalNode = null;
+            this.finalDistance = 0;
+            this.nextNodeId = this.id;
+            this.nextNode = null;
+            this.nextDistance = 0;
+            return;
+        }
+        let completeSelection = {
+            finalDistance: 99999999,
+            finalNodeId: "",
+            finalNode: {},
+            finalRoute: [],
+            nextDistance: 99999999,
+            nextNodeId: '',
+            nextNode: {},
+            nextPath: []
+        }
         let finalOptions = [];
+        // Make sure there are other nodes in the game
         if (Game.Nodes.length > 0) {
-            deliveryOptions.push(_.filter(Game.Nodes, function(o) {
-                return o.finalDrop;
-            }));
-            if (deliveryOptions.length > 0) {
-                let bestOption = {
-                    node: {},
-                    distance: 8000
+            for (let node in Game.Nodes) {
+                if (node.finalDrop) {
+                    finalOptions.push(node);
                 }
-                let distance = 0;
-                for (let option in deliveryOptions) {
-                    distance = Game.Map.findRoute(this.room.name, option.room.name).length;
-                    if (distance < bestOption.distance) {
-                        bestOption.node = option;
-                        bestOption.distance = distance;
+            }
+            // Make sure we found some final drop options
+            if (finalOptions.length > 0) {
+                let testingRoute = [];
+                // Loop through our choices, looking for the closest one
+                for (let option in finalOptions) {
+                    // Check to make sure the straight line distance to the option is
+                    // less the current path distance to the best selection.
+                    // Should save a bit of CPU.
+                    if (Game.map.getRoomLinearDistance(this.room.name, option.room.name).length < completeSelection.finalDistance) {
+                        testingRoute = Game.Map.findRoute(this.room.name, option.room.name);
+                        if (testingRoute.length < completeSelection.finalDistance) {
+                            completeSelection.finalDistance = testingRoute.length;
+                            completeSelection.finalNodeId = option.id;
+                            completeSelection.finalNode = option;
+                            completeSelection.finalRoute = testingRoute;
+                        }
                     }
                 }
-                return bestOption.node.id;
+                // Having picked the finalNode, w/ Id and Room Route already on hand,
+                // lets find the nextNode.
+                let nextOptions = [];
+                // Add any options from this room
+                for (let node of Game.Nodes) {
+                    if (node.room.name == this.room.name || node.id != this.id) {
+                        nextOptions.push(node);
+                    }
+                }
+                // Add any options along the way
+                for (let route in completeSelection.finalRoute) {
+                    for (let node of Game.Nodes) {
+                        if (node.room.name == route.name) {
+                            nextOptions.push(node);
+                        }
+                    }
+                }
+                // Make sure we found some options
+                if (nextOptions.length > 0) {
+                    let testDistance = 0;
+                    let testPath = [];
+                    for (let option in nextOptions) {
+                        // check to see if the estimated Linear Distance is less then the current nextDistance
+                        // Should save some CPU
+                        let estLinearTiles = Game.map.getRoomLinearDistance(this.room.name, option.room.name)*50;
+                        if (estLinearTiles < completeSelection.nextDistance) {
+                            testPath = PathFinder.search(this.pos, {pos: option.pos, range: 1})
+                            testDistance = testPath.length;
+                            if (testDistance < completeSelection.nextDistance) {
+                                completeSelection.nextDistance = testDistance;
+                                completeSelection.nextNodeId = option.id;
+                                completeSelection.nextNode = option;
+                                completeSelection.nextPath = testPath;
+                            }
+                        }
+                    }
+
+                }
+                else {
+                    // Error here because agian, somehow, there are Nodes, Final Distinations even, but no Next Destinations!??!??!
+                    // TODO: throw an error here....
+                }
+
 
             }
             else {
-                // TODO: Throw an error here
+                // Error here because this node cannot find any finalDrop options.
+                // Just as bad as not finding any nodes.
+                // TODO: throw an error here
             }
+
         }
         else {
-            // TODO: Throw an error here
+            //Error here because this node cannot find other nodes
+            //So it muct be the only node, and only nodes should be final destinations
+            // TODO: Throw an error
         }
-    }
 
-    /** Private function to find best downstream Node
-     * @private
-     * @returns {Object} results
-     * @property {String} results.Id next downstream node in the chain.
-     * @property {number} results.finalDistance - distance by path from this node to the final node.
-     */
-    _findNextNodeId() {
-        /** Locates the best place to take the resources to for transfer or drop */
-        let deliveryOptions = [];
-        // Check first to see if there are other nodes
-        if (Game.Nodes.length > 0) {
-            let routeToCheckForNodes = Game.map.findRoute(this.room.name, this.finalNode.room.name);
-            let roomsToCheckForNodes = []
-            roomsToCheckForNodes.push(this.room.name);
-            for (let route in routeToCheckForNodes) {
-                roomsToCheckForNodes.push(route.room);
-            }
-            for (let room in roomsToCheckForNodes) {
-                for (let node of Game.Nodes) {
-                    if (node.room.name == room) {
-                        deliveryOptions.push(node);
-                    }
-                }
-            }
+    } // End of _updateDownstream()
 
-            let bestOption = {
-                node: {},
-                distance: 8000
-            }
-            let totalDistance = 0;
-            for (let option in deliveryOptions) {
-                let path = this.resource.pos.findPathTo(option);
-                totalDistance = path.length + option.finalDistance;
-                if (totalDistance < bestOption.distance) {
-                    bestOption.nextNodeId = option.id;
-                    bestOption.finalDistance = totalDistance;
-                    bestOption.nextDistance = path.length;
-                }
-            }
-
-            return bestOption;
-        }
-        else {
-            // No other nodes
-            // TODO: throw an error of some kind
-            return null;
-        }
-    }
-
-}
+} // End of class Node
 
 let test = new Node(false, "1");
 
 test.fin
 
 
-
-
-
-
-
-
-
-
-
-
-
 /** Nodes form the backbone of resource transportation routes for the Omni-Union.
- * 
+ *
  * Nodes are delivery points, production points, and can group a number of features and structures together.
  * Nodes can be upgraded (spawn delivery node to storage delivery node) or are gated (mineral nodes can't have miners or extractors until the room is at level 6)
  *
@@ -406,54 +466,6 @@ test.fin
  * plus upgrade the nodes functionality as room levels and needs increase.
  */
 
-/** Node Class
- * 
- */
-class notNode {
-    /** 
-     * Constructs the Node
-     * @param {String} id - id of proposed node (must match the id of a source, deposit, mineral, powerbank, spawn, or storage)
-     * @returns {Node} The Node
-     */
-    constructor(id) {
-        // validate that this is an id of something
-        let requestedCreationObject = Game.getObjectById({id: id});
-        if (requestedCreationObject != null) {
-            // valid object that can be seen
-            if (requestedCreationObject instanceof Source || 
-                requestedCreationObject instanceof Deposit || 
-                requestedCreationObject instanceof Mineral || 
-                requestedCreationObject instanceof StructurePowerBank ||
-                requestedCreationObject instanceof StructureSpawn ||
-                requestedCreationObject instanceof StructureStorage ||
-                requestedCreationObject instanceof 
-            ) {
-                // correct kind of object to be looked for
-            }
-        }
-        // Check to see if this node is in memory
-        if (Memory.Nodes[id] != undefined) {
-
-        }
-
-        // Check to see if the node was generated under a different id (final destination Nodes will be created via spawner before there is a storage)
-        let creatorStructure = Game.structures[id];
-        if (creatorStructure != undefined) {
-            let idOptions = creatorStructure.room.find(FIND_MY_STRUCTURES, {
-                filter: (structure) => {
-                    return (structure.structureType == STRUCTURE_STORAGE || structure.structureType == STRUCTURE_SPAWN);
-                }
-            })
-        }
-    }
-}
-/** function that will create the correct type of node and make sure that we are not duplicating nodes
- * Nodes can be created based off of an ID (if there is one that was created before and needs to be connected to a memory instance and rebuilt)
- * Additionally if given a Source, Deposit, Mineral, PowerBank, StructureSpawn, StructureStorage, or StructureContainer
- */
-function createNode() {
-    /** sort out what kind of information we are provided to create a new node */
-}
 /**
  * Resource Production Tracking
  * @typedef {Object} prodTrack
@@ -501,268 +513,5 @@ function createNode() {
  */
 
 const OmniUnion = require("./class.OmniUnion");
-
-/** Additional private functions */
-
-/** Finds the best downstream node by distance and adds the needed info to memory and returns the node
- * @param {Object} this
- * @return {Object} Downstream Option
- */
-function _findDownStreamNode(this) {
-    /** Locate and select the correct place to take the resource to
-         * for transfer or drop.
-         * If in the same room as the destination, we need to see if there is a storage
-         * to take the resource to, or if we need to drop next to spawn.
-         * If adjacent to the destination room, we need to check to see if there is a storage
-         * in the destination room, or see if we need to drop at spawn, and also see if the
-         * storage/spawn option is the closest by path or if there is a node closer.
-         */
-
-    let deliveryOptions = [];
-    let spawnDrop = false;
-    // Check to see if there are other nodes
-    if (OmniUnion.Nodes.length > 0) {
-        // Check to see if we need to walk through rooms
-        let roomsToCheckForNodes = Game.map.findRoute(this.room.name, this.destinationRoom.name);
-        if (roomsToCheckForNodes.length > 0) {
-            // Loop through every room available adding the nodes in those rooms
-            for (let room in roomsToCheckForNodes) {
-                for (let node of OmniUnion.Nodes) {
-                    if (node.room.name == room) {
-                        deliveryOptions.push(node);
-                    }
-                }
-                if (deliveryOptions.length > 0) {
-                    break; // Breaks the loop if we have found some options
-                }
-            }
-        }
-    }
-
-    // Check to see if there are No delivery Options (nodes only), if this node is IN the destination room, or if this node is NEXT to the destination room
-    if (deliveryOptions.length == 0 ||
-        this.room.name == this.destinationRoom.name ||
-        Game.map.getRoomLinearDistance(this.room.name, this.destinationRoom.name) == 1 ) {
-            // Check to see if there is NOT a storage in the destination room
-        if (!this.destinationRoom.storage) {
-            // add the tile 1 south of the spawn to the options
-            let spawn = this.room.find(FIND_MY_SPAWNS)[0];
-            deliveryOptions.push(new RoomPosition(spawn.pos.x, spawn.pos.y - 1, spawn.pos.roomName));
-            spawnDrop = true;
-        }
-        else {
-            // There is a storage in the destination room, add it as an option
-            deliveryOptions.push(this.destinationRoom.storage);
-        }
-    }
-
-    // Find the closest option by path + the options distance to the final destination
-    let bestOption = {
-        node: {},
-        distance: 8000,
-        path:[]
-    }
-    let totalDistance = 0
-    for (let option in deliveryOptions) {
-        let path = this.resource.pos.findPathTo(option);
-
-        // check to make sure the option has a distance to the destination (not true for the storage or the spawn pos)
-        if (option.totalDistance != undefined) {
-            totalDistance = option.distanceToDestination + path.length;
-        }
-        else {
-            totalDistance = path.length
-        }
-
-        // Check to see if the current totalDistance is the shortest distance we have see
-        if (totalDistance < bestOption.distance) {
-            bestOption.node = option;
-            bestOption.distance = totalDistance;
-            bestOption.path = path;
-        }
-    }
-
-    // Now that the best option has been selected
-
-    /**
-    if (!spawnDrop) {
-        //find the closest option by path + option distance to final destination
-        let bestOption = {
-            node: {},
-            distance: 80000,
-            path: [],
-        }
-        let totalDistance = 0
-        for (let option in deliveryOptions) {
-            let path = this.resource.pos.findPathTo(option);
-            totalDistance = option.distanceToDestination + path.length;
-            if (totalDistance < bestOption.distance) {
-                bestOption.node = option;
-                bestOption.distance = totalDistance;
-                bestOption.path = path;
-            }
-        }
-        this._downstreamNode = bestOption.node;
- 
-        this.memory.downstreamNodeID = bestOption.node.id;
-        this.memory.distanceToDestination = totalDistance
-    }
-        */
-}
-
-/** Class defining the base Node */
-class BasicNode {
-    /** Creates a Basic Node
-     * MUST be either a valid ID and have matching Memory
-     * OR a resource id and destination id
-     * @param {scope}
-     * @param {string} [scope.id] - the node id
-     * @param {string} [scope.resourceID] - the id of the resource
-     */
-    constructor(scope = {}) {
-        for (let prop in scope) {
-            this[prop] = scope[prop]
-        }
-
-        // Check to see if the Node was recalled from memory
-        if (this.id != undefined && Memory.Node[this.id] != undefined) {
-            //construction completed
-            return this;
-        }
-
-        // else we need to have a resourceID and destinationID
-        else if (this.resourceID != undefined) {
-            // Build the Node based on this information
-            this.id = "Node_" + this.resourceID;
-            this.init();
-            return this;
-        }
-
-        // not enough info to build the Node
-        else {
-            console.log("ERROR: NOT GIVEN ENOUGH INFORMATION TO CREATE A NODE.");
-            return;
-        }
-
-    } // End of Constructor
-
-    /** Initializes the Node (Runs as part of the construction) */
-    init() {
-        // TODO: set Prime
-        // TODO: Check set POS
-        // TODO: check/build Container
-        // TODO: check/build the roads
-
-    }
-
-    /** Gets the Memory Object
-     * @returns {Object} memory
-     */
-    get memory() {
-        return Memory.Nodes[this.id] || {};
-    }
-
-    /** Sets the Memory Object
-     * @param {*} value
-     */
-    set memory(value) {
-        Memory.Nodes[this.id] = value;
-    }
-
-    /** Gets the Resource Object
-     * @returns {Object} Source/Deposit/Mineral
-     */
-    get resource() {
-        if (!this._resource) {
-            if (!this.memory.resourceID) {
-                this.memory.resourceID = this.resourceID;
-            }
-            this._resource = Game.getObjectById(this.memory.resourceID);
-        }
-        return this._resource
-    }
-
-    /** Gets the Room Object
-     * @returns {Object} room
-     */
-    get room() {
-        if (!this._room) {
-            if (!this.memory.roomName) {
-                this.memory.roomName = this.resource.room.name;
-            }
-            this._room = Game.rooms[this.memory.roomName];
-        }
-        return this._room;
-    }
-
-    /** Gets the Room Controller Object */
-    get controller() {
-        if (!this._controller) {
-            this._controller = this.room.controller;
-        }
-        return this._controller
-    }
-
-    /** Gets the Destination Room
-     * @returns {Object} Destination Room
-     */
-    get destinationRoom() {
-        if (!this._destinationRoom) {
-            if (!this.memory.destinationRoomName) {
-                let minDist = 200;
-                let distance = 0;
-                let destinationRoomName = "";
-                for (let i in Game.rooms) {
-                    if (Game.rooms[i].controller.my) {
-                        distance = Game.Map.findRoute(this.room.name, Game.rooms[i].name);
-                        if(distance < minDist) {
-                            minDist = distance;
-                            destinationRoomName = Game.rooms[i].name;
-                        }
-                    }
-                }
-                this.memory.destinationRoomName = destinationRoomName;
-            }
-            this._destinationRoom = Game.rooms[this.memory.destinationRoomName];
-        }
-        return this._destinationRoom;
-    }
-
-    /** Gets the Downstream Object
-     * If there is a know downstream Node (Node container or room Storage),
-     * it returns that object.  Otherwise it returns a RoomPos Object located one square
-     * south of the room's spawn. (in the case the node is in the same room as the best
-     * controller and the room does not have a storage)
-     * @returns {Object} downstream Structure Object or a dropoff RoomPos Object
-     */
-    get downstreamNode() {
-        // Check to see if the node is cached
-        if (!this._downstreamNode) {
-            /// Check to see if the node id is remembered
-            if (!this.memory.downstreamNodeID) {
-                let downstreamOption = _findDownStreamNode(self);
-                this._downstreamNode = downstreamOption.node;
-                this.memory.distanceToDestination = downstreamOption.totalDistance;
-                //this.memory.downstreamPath = bestOption.path;
-                // if the node has an id, it should be remembered
-                if (this._downstreamNode.id != undefined) {
-                    this.memory.downstreamNodeID = this._downstreamNode.id;
-                }
-            }
-            // The Id is remembered!
-            else {
-                this._downstreamNode = OmniUnion.Nodes[this.memory.downstreamNodeID];
-                // Check to see if we found the node in the game
-                if (!this._downstreamNode) {
-                    // Nope, it is a storage
-                    this._downstreamNode = Game.structures[this.memory.downstreamNodeID];
-                }
-            }
-
-        }
-        return this._downstreamNode;
-    }
-
-} // End of BasicNode
 
 module.exports = BasicNode;
