@@ -202,6 +202,7 @@ class Node {
                 /** @member {String} roomName - name of the room */
                 this.roomName = this.room.roomName;
                 /** @member {Number} updateTick - tick the node was last updated*/
+                this.lastUpdate = Game.time;
 
                 if (requestor instanceof Source || requestor instanceof Mineral) {
                     /** @member {Boolean} finalDrop - True if the last stop in the chain */
@@ -220,9 +221,6 @@ class Node {
                     this.finalDrop = true;
                     this.finalDistance = 0;
                     this.distance = 0;
-                    this.nextNodeId = this.id;
-                    this.finalNodeId = this.id;
-
                 }
                 else {
                     // TODO: throw an error of some kind
@@ -240,9 +238,43 @@ class Node {
      * @returns {String} Final Node Id
      */
     get finalNodeId() {
-        if (!this._finalNodeId) {
-            if (!this.memory.finalNodeId || )
+        if (this.finalDrop) {
+            return this.id;
         }
+        if (!this._finalNodeId) {
+            if (!this.memory.finalNodeId || (Game.time - this.lastUpdate) > updateTicks) {
+                let finalNodeId = this._findFinalNodeId();
+                this.memory.finalNodeId = finalNodeId;
+                this._finalNodeId = finalNodeId;
+            }
+            else {
+                this._finalNodeId = this.memory.finalNodeId;
+            }
+        }
+        return this._finalNodeId;
+    }
+
+    /** Gets the next downstream node id
+     * @returns {String} next Node Id
+     */
+    get nextNodeId() {
+        if (this.finalDrop) {
+            return this.id;
+        }
+        if (!this._nextNodeId) {
+            if (!this.memory.nextNodeId || (Game.time = this.lastUpdate) > updateTicks) {
+                let results = this._findNextNodeId();
+                this.memory.nextNodeId = results.nextNodeId;
+                this.nextDistance = results.nextDistance;
+                this.finalDistance = results.finalDistance;
+                this._nextNodeId = nextNodeId;
+                // TODO: finish saving or updating the next and final distances
+            }
+            else {
+                this._nextNodeId = this.memory.nextNodeId;
+            }
+        }
+        return this._nextNodeId;
     }
 
     /** Gets the Memory Object
@@ -297,7 +329,9 @@ class Node {
 
     /** Private function to find best downstream Node
      * @private
-     * @returns {String} Id of the next downstream node in the chain
+     * @returns {Object} results
+     * @property {String} results.Id next downstream node in the chain.
+     * @property {number} results.finalDistance - distance by path from this node to the final node.
      */
     _findNextNodeId() {
         /** Locates the best place to take the resources to for transfer or drop */
@@ -327,12 +361,13 @@ class Node {
                 let path = this.resource.pos.findPathTo(option);
                 totalDistance = path.length + option.finalDistance;
                 if (totalDistance < bestOption.distance) {
-                    bestOption.node = option;
-                    bestOption.distance = totalDistance;
+                    bestOption.nextNodeId = option.id;
+                    bestOption.finalDistance = totalDistance;
+                    bestOption.nextDistance = path.length;
                 }
             }
 
-            return bestOption.node;
+            return bestOption;
         }
         else {
             // No other nodes
@@ -430,19 +465,12 @@ function createNode() {
  * The BaseNode definition
  * @typedef {Object} BaseNode
  * @property {StructureStorage|StructureContainer|StructureSpawn} dropOff - link to the node's physical drop.
- * @property {Boolean} finalDrop - True if this is the final dropoff point for a chain.
- * @property {Object} memory - link to the Node's memory object.
- * @property {Room} room - link to the Node's Room Object.
- * @property {String} id - id of the Node.
  * @property {prodTrack} prodTrack - object tracking amount of each resource pushed out from this node per tick.
- * @property {string} nodeType - string containing the node type.
  */
 
 /**
  * The ChainNode definition, extends baseNode
  * @typedef {Object} ChainNode
- * @property {String} nextNodeId - id of the next downstream Node.
- * @property {String} finalNodeId - id of the final downstream Node.
  * @property {BaseNode|ChainNode|ProdNode} nextNode - link to the next downstream Node.
  * @property {BaseNode} finalNode - link to the final downstream Node.
  * @property {Number} finalDistance - distance from this node to the final node.
