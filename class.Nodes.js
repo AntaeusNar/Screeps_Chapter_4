@@ -207,18 +207,20 @@ class Node {
                 if (requestor instanceof Source || requestor instanceof Mineral) {
                     /** @member {Boolean} finalDrop - True if the last stop in the chain */
                     this.finalDrop = false;
+                    /** @member {String} nodeType - the type of node */
+                    this.nodeType = 'Production';
                     /** @member {String} resourceID - id of the resource */
                     this.resourceID = this.id;
                     /** @member {Source|Mineral} - {@link Source} or {@link Mineral} that is the resource */
                     this.resource = requestor;
-                    /** @member {String} nodeType - the type of node */
-                    this.nodeType = 'Production';
+
+
                 }
                 else if (requestor instanceof StructureSpawn) {
+                    this.finalDrop = true;
+                    this.nodeType = 'Final';
                     this.resourceID = null;
                     this.resource = null;
-                    this.nodeType = 'Final';
-                    this.finalDrop = true;
                     this.finalDistance = 0;
                     this.distance = 0;
                 }
@@ -380,7 +382,7 @@ class Node {
 
 let test = new Node(false, "1");
 
-test.
+test.fin
 
 
 
@@ -407,7 +409,7 @@ test.
 /** Node Class
  * 
  */
-class Node {
+class notNode {
     /** 
      * Constructs the Node
      * @param {String} id - id of proposed node (must match the id of a source, deposit, mineral, powerbank, spawn, or storage)
