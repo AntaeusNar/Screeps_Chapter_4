@@ -339,6 +339,7 @@ class Node {
      * Should only be called in the case that either the node does not know where the downstream is,
      * OR after about 12 hours have passed.
      * @private
+     * @returns {Number} OK or ERR_NOT_FOUND
      */
     _updateDownstream() {
         // If this node is a final node, update and return.
@@ -351,7 +352,7 @@ class Node {
             this.nextNodeId = this.id;
             this.nextNode = null;
             this.nextDistance = 0;
-            return;
+            return OK;
         }
         let completeSelection = {
             finalDistance: 99999999,
@@ -425,28 +426,16 @@ class Node {
                             }
                         }
                     }
-
+                    // Update the Node with the selected options
+                    for (let prop of completeSelection) {
+                        this[prop] = completeSelection[prop];
+                    }
+                    return OK;
                 }
-                else {
-                    // Error here because agian, somehow, there are Nodes, Final Distinations even, but no Next Destinations!??!??!
-                    // TODO: throw an error here....
-                }
-
-
             }
-            else {
-                // Error here because this node cannot find any finalDrop options.
-                // Just as bad as not finding any nodes.
-                // TODO: throw an error here
-            }
-
         }
-        else {
-            //Error here because this node cannot find other nodes
-            //So it muct be the only node, and only nodes should be final destinations
-            // TODO: Throw an error
-        }
-
+        // This code can only be reached if there are no nodes, no final drops, or no nodes on route to the final drop.
+        return ERR_NOT_FOUND;
     } // End of _updateDownstream()
 
 } // End of class Node
