@@ -223,7 +223,7 @@ class Node {
                 /** @member {String} nodeType - the type of node */
                 this.nodeType = 'Production';
                 /** @member {String} resourceID - id of the resource */
-                this.resourceID = this.id;
+                this.resourceId = this.id;
                 /** @member {Source|Mineral} - {@link Source} or {@link Mineral} that is the resource */
                 this.resource = requestor;
 
@@ -238,12 +238,29 @@ class Node {
                 this.nextNodeId = this.id;
                 this.nextNode = null;
                 this.nextDistance = 0;
-                this.resourceID = null;
+                this.resourceId = null;
                 this.resource = null;
             }
         }
         return this;
     } // End of constructor
+
+    /** Gets the resource Object
+     * @returns {Source|Mineral} resource
+     */
+    get resource() {
+        if (!this._resource) {
+            this._resource = Game.getObjectById(this.resourceId);
+        }
+        return this._resource;
+    }
+
+    set resource(resource) {
+        if (resource instanceof Source || resource instanceof Mineral) {
+            this.resourceId = resource.id;
+            this._resource = resource;
+        }
+    }
 
     /** Gets the final Node ID
      * @returns {String} Final Node Id
