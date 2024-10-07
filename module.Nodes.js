@@ -179,9 +179,7 @@ class Node {
     // TODO: RoomPos Object
     // TODO: Containers
     // TODO: Roads
-    // TODO: Room link
     // TODO: Controller Link
-    // TODO: Resource link
     /**
      * Creates a Node
      * @param {Boolean} fromMemory - flag if the creation is from member
@@ -245,12 +243,31 @@ class Node {
         return this;
     } // End of constructor
 
+    /** Gets the room Object
+     * @returns {Room} Room
+     */
+    get room() {
+        if (!this._room) {
+            if (!this.memory.roomName) {
+                this.memory.roomName = this.resource.pos.roomName;
+            }
+            this._room = Game.rooms[this.memory.roomName];
+        }
+        return this._room;
+    }
+
+    set room(room) {
+        this.memory.roomName = Game.rooms[room.name];
+        this._room = room;
+        return OK;
+    }
+
     /** Gets the resource Object
      * @returns {Source|Mineral} resource
      */
     get resource() {
         if (!this._resource) {
-            this._resource = Game.getObjectById(this.resourceId);
+            this._resource = Game.getObjectById({id: this.resourceId});
         }
         return this._resource;
     }
@@ -259,7 +276,39 @@ class Node {
         if (resource instanceof Source || resource instanceof Mineral) {
             this.resourceId = resource.id;
             this._resource = resource;
+            return OK;
         }
+        return ERR_INVALID_ARGS;
+    }
+
+    /** Gets the resource id
+     * @returns {String} resourceId
+     */
+    get resourceId() {
+        // CHeck for cached
+        if(!this._resourceId) {
+            // Check for resource id in memory
+            if (!this.memory.resourceId) {
+                // Check to see if this is supposed to be a finalDrop
+                if (this.finalDrop) {
+                    return null;
+                }
+                else {
+                    this.memory.resourceId = Game.getObjectById({id: this.id});
+                }
+                this._resourceId = this.memory.resourceId;
+            }
+        }
+        return this._resourceId;
+    }
+
+    set resourceId(id) {
+        let testableResource = Game.getObjectById({id: id});
+        if (testableResource instanceof Source || testableResource instanceof Mineral) {
+            this.memory.resourceId = testableResource.id;
+            return OK;
+        }
+        return ERR_INVALID_ARGS;
     }
 
     /** Gets the final Node ID
