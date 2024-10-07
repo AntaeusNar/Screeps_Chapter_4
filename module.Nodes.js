@@ -176,10 +176,10 @@ Object.defineProperty(Creep.prototype, 'node', {
  */
 class Node {
 
-    // TODO: RoomPos Object
-    // TODO: Containers
     // TODO: Roads
     // TODO: Controller Link
+    // TODO: nextPath
+    // TODO: Miners and Freighters
     /**
      * Creates a Node
      * @param {Boolean} fromMemory - flag if the creation is from member
@@ -416,6 +416,9 @@ class Node {
         this.memory.finalNodeId = id;
     }
 
+    /** Gets the final Node
+     * @returns {Node} finalNode
+     */
     get finalNode() {
         if (this.finalDrop) {
             return null;
@@ -453,6 +456,9 @@ class Node {
         this.memory.nextNodeId = id;
     }
 
+    /** Gets the next downstream node
+     * @returns {Node} nextNode
+     */
     get nextNode() {
         if (this.finalDrop) {
             return null;
@@ -608,11 +614,6 @@ class Node {
     }
 
 } // End of class Node
-
-let test = new Node(false, "1");
-
-test.fin
-
 
 /** Nodes form the backbone of resource transportation routes for the Omni-Union.
  *
