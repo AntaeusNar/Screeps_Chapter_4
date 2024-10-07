@@ -241,13 +241,100 @@ class Node {
         return this;
     } // End of constructor
 
+    /** Gets the pos of the Node
+     * @returns {RoomPosition} pos
+     */
+    get pos() {
+        if (!this._pos) {
+            // Not in memory or updated needed
+            if (!this.memory.pos || this._updateNeeded()) {
+                let testableLocation = Game.getObjectById({id: this.id});
+                let tempPos = {};
+                // Base of Node is Source or Mineral
+                if (testableLocation instanceof Source || testableLocation instanceof Mineral) {
+                    // There is a container
+                    if (this.container != null) {
+                        tempPos.room = this.room.name;
+                        tempPos.x = this.container.pos.x;
+                        tempPos.y = this.container.pos.y;
+                    }
+                    else {
+                        // next step on the path toward the next downstream node
+                        tempPos.room = this.room.name;
+                        tempPos.x = this.nextPath[0].x;
+                        tempPos.y = this.nextPath[0].y;
+                    }
+                }
+                else {
+                    // Base of the node is a spawn
+                    tempPos.room = this.room.name;
+                    // Check for storage
+                    if (this.room.storage != undefined) {
+                        tempPos.x = this.room.storage.pos.x;
+                        tempPos.y = this.room.storage.pos.y;
+                    }
+                    else {
+                        // no storage, space is one tile south of spawn
+                        tempPos.x = testableLocation.pos.x;
+                        tempPos.y = testableLocation.pos.y -1;
+                    }
+                }
+                this.memory.pos = tempPos;
+            }
+            this._pos = new RoomPosition(this.memory.pos);
+        }
+        return this._pos;
+    }
+
+    /** Gets the container
+     * @returns {StructureContainer|null} container
+     */
+    get container() {
+        if (!this._container) {
+            if (this.finalDrop) {
+                return null;
+            }
+            if (!this.memory.containerId) {
+              //look for a container
+              let container;
+              container = this.resource.pos.findInRange(FIND_STRUCTURES, 1, {
+                filter: s => s.structureType == STRUCTURE_CONTAINER
+              })[0];
+              //check to see if we have found one
+              if (container != undefined) {
+                this.memory.containerId = container.id;
+              }
+              //look for/place construction site
+              else {
+                let containerSite;
+                containerSite = this.resource.pos.findInRange(FIND_MY_CONSTRUCTION_SITES, 1, {
+                  filter: s => s.structureType == STRUCTURE_CONTAINER
+                });
+                //check to see if we have found one
+                if (containerSite != undefined){
+                  //construction in progress
+                  return null;
+                }
+                //place a new constructionSite
+                else {
+                  this._placeNewContainer();
+                  return null;
+                }
+              }
+            }
+            this._container = Game.getObjectById(this.memory.containerId);
+          }
+          return this._container;
+    }
+
     /** Gets the room Object
      * @returns {Room} Room
      */
     get room() {
         if (!this._room) {
             if (!this.memory.roomName) {
-                this.memory.roomName = this.resource.pos.roomName;
+                let testableLocation = Game.getObjectById({id: this.id});
+                this.memory.roomName = testableLocation.pos.roomName;
             }
             this._room = Game.rooms[this.memory.roomName];
         }
@@ -317,7 +404,7 @@ class Node {
             return this.id;
         }
         if (!this._finalNodeId) {
-            if (!this.memory.finalNodeId || (Game.time - this.lastUpdate) > updateTicks) {
+            if (!this.memory.finalNodeId || this._updateNeeded()) {
                 this._updateDownstream();
             }
             this._finalNodeId = this.memory.finalNodeId;
@@ -354,7 +441,7 @@ class Node {
             return this.id;
         }
         if (!this._nextNodeId) {
-            if (!this.memory.nextNodeId || (Game.time = this.lastUpdate) > updateTicks) {
+            if (!this.memory.nextNodeId || this._updateNeeded()) {
                 this._updateDownstream();
             }
             this._nextNodeId = this.memory.nextNodeId;
@@ -414,6 +501,7 @@ class Node {
             this.nextNodeId = this.id;
             this.nextNode = null;
             this.nextDistance = 0;
+            this.nextPath = null;
             return OK;
         }
         let completeSelection = {
@@ -478,7 +566,7 @@ class Node {
                         // Should save some CPU
                         let estLinearTiles = Game.map.getRoomLinearDistance(this.room.name, option.room.name)*50;
                         if (estLinearTiles < completeSelection.nextDistance) {
-                            testPath = PathFinder.search(this.pos, {pos: option.pos, range: 1})
+                            testPath = PathFinder.search(this.pos, {pos: option.pos, range: 1}).path
                             testDistance = testPath.length;
                             if (testDistance < completeSelection.nextDistance) {
                                 completeSelection.nextDistance = testDistance;
@@ -499,6 +587,25 @@ class Node {
         // This code can only be reached if there are no nodes, no final drops, or no nodes on route to the final drop.
         return ERR_NOT_FOUND;
     } // End of _updateDownstream()
+
+    /** Private function to check if update is needed
+     * @private
+     * @return {Boolean} true if updated needed
+     */
+    _updateNeeded() {
+        if ((Game.time = this.lastUpdate) > updateTicks) {
+            return true;
+        }
+        return false;
+    }
+
+    /** Places a new container ConstructionSite one the first pos in path to downstream object
+     * @private
+     */
+    _placeNewContainer() {
+        let location = this.nextPath[0];
+        location.createConstructionSite(STRUCTURE_CONTAINER);
+    }
 
 } // End of class Node
 
