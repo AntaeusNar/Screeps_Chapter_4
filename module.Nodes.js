@@ -224,8 +224,6 @@ class Node {
                 this.resourceId = this.id;
                 /** @member {Source|Mineral} - {@link Source} or {@link Mineral} that is the resource */
                 this.resource = requestor;
-
-
             }
             else if (requestor instanceof StructureSpawn) {
                 this.finalDrop = true;
