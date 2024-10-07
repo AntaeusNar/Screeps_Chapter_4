@@ -11,9 +11,10 @@ if (Memory.Nodes == undefined) {
     Memory.Nodes = {};
 }
 
-/** Background constants */
+/** Background constants & Requires*/
 // Update rate once every 12 hours (5 sec per tick, 12hr * 60Min * 60sec/5sec)
 const updateTicks = (12*60*60)/5;
+require("./lib.packrat");
 
 /** Normal game objects must be able to link to nodes */
 
@@ -177,8 +178,6 @@ Object.defineProperty(Creep.prototype, 'node', {
 class Node {
 
     // TODO: Roads
-    // TODO: Controller Link
-    // TODO: nextPath
     // TODO: Miners and Freighters
     /**
      * Creates a Node
@@ -240,6 +239,14 @@ class Node {
         }
         return this;
     } // End of constructor
+
+    /** does some initialization after constructor, or after a _update */
+    init() {
+        if (this.resource instanceof Source || (this.resource instanceof Mineral && this.room.controller.level > 5)) {
+            this.container;
+            this._roadsCheck;
+        }
+    }
 
     /** Gets the pos of the Node
      * @returns {RoomPosition} pos
@@ -476,6 +483,24 @@ class Node {
         }
     }
 
+    /** Gets the path to the next node
+     * @returns {RoomPosition[]} nextPath
+     */
+    get nextPath() {
+        if (!this._nextPath) {
+            if (!this.memory.nextPath || this._updateNeeded) {
+                this._updateDownstream();
+            }
+            this._nextPath = unpackPosList(this.memory.nextPath)
+        }
+        return this._nextPath;
+    }
+
+    set nextPath(path) {
+        this.memory.nextPath = packPosList(path);
+        this._nextPath = path;
+    }
+
     /** Gets the Memory Object
      * @returns {Object} memory
      */
@@ -611,6 +636,26 @@ class Node {
     _placeNewContainer() {
         let location = this.nextPath[0];
         location.createConstructionSite(STRUCTURE_CONTAINER);
+        return OK;
+    }
+
+    /** Places roads along the path if needed
+     * @private
+     */
+    _roadsCheck() {
+        let path = this.nextPath;
+        path.shift();
+        for (let stop in path) {
+            if (stop.findInRange(FIND_STRUCTURES, 0, {
+                filter: s => s.structureType == STRUCTURE_ROAD
+            }).length == 0) {
+                if (stop.findInRange(FIND_MY_CONSTRUCTION_SITES, 0, {
+                    filter: s => s.structureType == STRUCTURE_ROAD
+                }).length == 0) {
+                    stop.createConstructionSite(STRUCTURE_ROAD);
+                }
+            }
+        }
     }
 
 } // End of class Node
@@ -672,5 +717,6 @@ class Node {
  */
 
 const OmniUnion = require("./class.OmniUnion");
+const { unpackPosList, packPosList } = require("./lib.packrat");
 
 module.exports = BasicNode;
