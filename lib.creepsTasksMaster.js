@@ -74,7 +74,7 @@ let taskMaster = {
         }
         if (idleCreeps.length == 0) {
             console.log("INFO: TaskMaster has no idle creeps to try to give tasks to.");
-            return;
+            return ERR_INVALID_TARGET;
         }
 
         // get the unique valid tasks the idle creeps can do
@@ -83,7 +83,7 @@ let taskMaster = {
         validWorkableTasks = _.uniq(validWorkableTasks.flat(Infinity));
         if (validWorkableTasks.length == 0) {
             console.log("ERROR: TaskMaster found " + idleCreeps.length + " creeps but no valid tasks.");
-            return;
+            return ERR_INVALID_TARGET;
         }
 
         //Check all rooms for Targets and Tasks, using provided rooms if given
@@ -102,7 +102,7 @@ let taskMaster = {
         if (roomResults.length == 0) {
             // TODO add a scouting task function here
             console.log("INFO: TaskMaster checked rooms, but found no Targets needing tasks.");
-            return;
+            return ERR_INVALID_TARGET;
         }
 
         // Collect all Targets and tasks rooms have
@@ -114,35 +114,35 @@ let taskMaster = {
         });
         if (assignableTargets.length == 0 && possibleTasks != 0) {
             console.log("ERROR: TaskMaster found possible tasks, but no targets!!!");
-            return;
+            return ERR_INVALID_TARGET;
         }
 
         // Only uniq possible tasks
         possibleTasks = _.uniq(possibleTasks.flat(Infinity));
         if (possibleTasks.length == 0) {
             console.log("ERROR: TaskMaster found " + roomResults.length + " rooms with targets, but no tasks.");
-            return;
+            return ERR_INVALID_TARGET;
         }
 
         // Reduce assignable tasks to tasks that are both possible and valid
         let assignableTasks = _.intersection(validWorkableTasks, possibleTasks);
         if (assignableTasks.length == 0) {
             console.log("INFO: TaskMaster was unable to find any Assignable tasks between " + validWorkableTasks + " and " + possibleTasks);
-            return;
+            return ERR_INVALID_TARGET;
         };
 
         // Filter creeps to only those with overlapping assignable and valid tasks
         let assignableCreeps = idleCreeps.filter((c) => assignableTasks.some(el => _.has(c.validWorkableTasks, el)));
         if (assignableCreeps.length == 0) {
             console.log("ERROR: TaskMaster expected to find assignable Creeps, but found none.");
-            return;
+            return ERR_INVALID_TARGET;
         };
 
         // Filter targets to only those with overlapping assignable and possible tasks
         assignableTargets = assignableTargets.filter((t) => assignableTasks.some(el => _.has(t.possibleNeededTasks, el)));
         if (assignableTargets.length == 0) {
             console.log("ERROR: TaskMaster expected to find assignable Targets, but found none.");
-            return;
+            return ERR_INVALID_TARGET;
         };
 
         // Build a 2D workQueuedMatrix where y = target, z = task
@@ -223,6 +223,7 @@ let taskMaster = {
         if (dropOut) {
             console.log("INFO: TaskMaster did run out of possible assignments.")
         };
+        return OK;
     },
 };
 
