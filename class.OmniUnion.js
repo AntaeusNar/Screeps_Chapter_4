@@ -23,13 +23,7 @@ class OmniUnion {
      */
     constructor() {
 
-        // Create the empty Nodes Object
-        this.Nodes = {};
-        if (this.memory.Nodes != undefined) {
-            for (let Node in this.memory.Nodes) {
-                this.Nodes[Node] = new Node({id: Node});
-            }
-        }
+        // TODO Create Nodes from Node memory
 
         return this;
     }
