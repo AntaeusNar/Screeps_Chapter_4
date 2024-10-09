@@ -25,7 +25,7 @@ module.exports.loop = function () {
 
     /** Calculate the target number of creeps based on CPU usage */
     let sum = Memory.CpuData.reduce((partialSum, a) => partialSum + a, 0);
-    let rollingAvg = sum/CPUhistory;
+    let rollingAvg = Math.max(1, Math.floor((sum/CPUhistory)*100))*100;
     let targetNumberOfCreeps = Math.max(1, Math.floor((availableCPUperTick*percentCPUtargeted)/rollingAvg));
 
     /** Run the Omni-Union */
