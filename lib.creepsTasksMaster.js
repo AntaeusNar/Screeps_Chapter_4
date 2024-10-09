@@ -100,6 +100,7 @@ let taskMaster = {
             }
         }
         if (roomResults.length == 0) {
+            // TODO add a scouting task function here
             console.log("INFO: TaskMaster checked rooms, but found no Targets needing tasks.");
             return;
         }
