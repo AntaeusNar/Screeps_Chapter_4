@@ -3,6 +3,8 @@
  * Nodes are a collection of creeps, structures and logic that allow for this functionality.
  */
 
+const { unpackPosList, packPosList } = require("./lib.packrat");
+
 /** The Game must have a location for the Nodes */
 if (Game.Nodes == undefined) {
     Game.Nodes = {};
@@ -716,7 +718,6 @@ class Node {
  *
  */
 
-const OmniUnion = require("./class.OmniUnion");
-const { unpackPosList, packPosList } = require("./lib.packrat");
+
 
 module.exports = BasicNode;
