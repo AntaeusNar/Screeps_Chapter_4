@@ -1172,7 +1172,9 @@ Object.defineProperty(RoomPosition.prototype, 'neighbors', {
 });
 RoomPosition.prototype.isPassible = function (ignoreCreeps = false) {
     // Is terrain passable?
-    if (Game.map.getTerrainAt(this) == 'wall')
+    // Updated for getRoomTerrain
+    let roomTerrain = Game.map.getRoomTerrain(this.roomName);
+    if (roomTerrain.get(this.x, this.y) == TERRAIN_MASK_WALL)
         return false;
     if (this.isVisible) {
         // Are there creeps?
