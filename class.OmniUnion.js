@@ -2,7 +2,7 @@
 
 /** Required Code */
 const { masterTasks } = require('./lib.creepsTasksMaster');
-const Node = require('./module.Nodes.js');
+// FIXME: const Node = require('./module.Nodes');
 require('./prototype.spawn');
 require('./prototype.tower');
 
