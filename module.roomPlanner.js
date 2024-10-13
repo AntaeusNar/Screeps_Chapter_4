@@ -8,15 +8,63 @@
 // [x] will need location(s) to place the construction site
 // [x] will need to ensure that the room's control level is enough to place the construction sites
 // [x] will need to group those locations together (templates)
+// [ ] switch to using a human-readable transform
 // [ ] will need to have a 'center' in the actual room to position the template
 // [ ] will need to ensure there is enough space to place the layout
 // [ ] will need to ensure the layout is getting placed in an optimal place
 
+/** Concept posted 10 October 2017 by @sparr https://github.com/screepers/screeps-snippets/blob/master/src/misc/JavaScript/bunkerLayoutsHumanReadable.js */
 /**
+ * maps letters/characters to structures types and vice versa
+ * @constant
+ */
+const layoutKey = {
+    'A': STRUCTURE_SPAWN,
+    'N': STRUCTURE_NUKER,
+    'K': STRUCTURE_LINK,
+    'L': STRUCTURE_LAB,
+    'E': STRUCTURE_EXTENSION,
+    'S': STRUCTURE_STORAGE,
+    'T': STRUCTURE_TOWER,
+    'O': STRUCTURE_OBSERVER,
+    'M': STRUCTURE_TERMINAL,
+    'P': STRUCTURE_POWER_SPAWN,
+    '.': STRUCTURE_ROAD,
+    'C': STRUCTURE_CONTAINER,
+    'R': STRUCTURE_RAMPART,
+    'W': STRUCTURE_WALL,
+    'F': STRUCTURE_FACTORY
+};
+
+/**
+ * HQ Template (rotatable square 4x5)
+ * @constant
+ */
+const HQTemplate = [
+    'TO..T',
+    'T.A.T',
+    'TN.FT',
+    ' MSK '
+];
+
+/**
+ * Extension Template (rotatable diagonal 3x3)
+ * @constant
+ */
+const extensionTemplate = [
+    '  .  ',
+    ' .E. ',
+    '.EEE.',
+    ' .E. ',
+    '  .  '
+];
+
+/**
+ * Machine Version as example
  * a diagonal 3x3 template for the placement of a plus sign of extensions with surrounding roads
  * @constant
   */
-const extensionTemplate = [
+const extensionMachineTemplate = [
     {
         "structureType": STRUCTURE_EXTENSION,
         "pos": [{"x": 0, "y": 0}, {"x": 0, "y": 1}, {"x": 0, "y": -1}, {"x": 1, "y": 0}, {"x": -1, "y": 0}]
@@ -28,63 +76,22 @@ const extensionTemplate = [
 ]
 
 /**
- * A HQ template (should be rotatable) square 5x5
- * @constant
- */
-const HQTemplate = [
-    {
-        "structureType": STRUCTURE_SPAWN,
-        "pos": [{"x": 0, "y": 1}]
-    },
-    {
-        "structureType": STRUCTURE_STORAGE,
-        "pos": [{"x": 0, "y": -1}]
-    },
-    {
-        "structureType": STRUCTURE_LINK,
-        "pos": [{"x": 1, "y": -1}]
-    },
-    {
-        "structureType": STRUCTURE_TERMINAL,
-        "pos": [{"x": -1, "y": -1}]
-    },
-    {
-        "structureType": STRUCTURE_NUKER,
-        "pos": [{"x": -1, "y": 0}]
-    },
-    {
-        "structureType": STRUCTURE_FACTORY,
-        "pos": [{"x": 1, "y": 0}]
-    },
-    {
-        "structureType": STRUCTURE_OBSERVER,
-        "pos": [{"x": -1, "y": 2}]
-    },
-    {
-        "structureType": STRUCTURE_TOWER,
-        "pos": [{"x": -2, "y": 2}, {"x": -2, "y": 1}, {"x": -2, "y": 0}, {"x": 2, "y": 2}, {"x": -1, "y": 1}, {"x": 2, "y": 0}]
-    },
-    {
-        "structureType": STRUCTURE_ROAD,
-        "pos": [{"x": 0, "y": 2}, {"x": 1, "y": 2}, {"x": -1, "y": 1}, {"x": 1, "y": 1}, {"x": 0, "y": 0}]
-    }
-]
-
-/**
- * a template for a 4x4 10 lab diagonal road that is rotatable
+ * Lab Template (rotatable diagonal 4x4)
  * @constant
  */
 const labTemplate = [
-    {
-        "structureType": STRUCTURE_LAB,
-        "pos": [{"x": -1, "y": 0}, {"x": 0, "y": -1}, {"x": -1, "y": 1}, {"x": -2, "y": 0}, {"x": 0, "y": -2}, {"x": 1, "y": -1}, {"x": 1, "y": 0}, {"x": -1, "y": -2}, {"x": -2, "y": -1}, {"x": 0, "y": 1}]
-    },
-    {
-        "structureType": STRUCTURE_ROAD,
-        "pos": [{"x": 1, "y": 1}, {"x": 0, "y": 0}, {"x": -1, "y": -1}, {"x": -2, "y": -2}]
-    }
-]
+    ' LL.',
+    'LL.L',
+    'L.LL',
+    '.LL '
+];
 
+/**
+ * Function to transform the human template to a machine template
+ * @param {Object} layoutKey - key
+ * @param {String[]} hTemp - human readable template
+ * @returns {Object[]} machine readable template
+ */
 
 /**
  * Function to find the best center for any given template
