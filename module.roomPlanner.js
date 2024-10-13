@@ -37,18 +37,35 @@ const layoutKey = {
 };
 
 /**
- * HQ Template (rotatable square 4x5)
+ * All Human Readable Templates SHALL be an odd square (3x3, 5x5, 7x7, 9x9, 11x11 etc).
+ * This allows the system to find and ID the center, used for placement.
+ */
+
+/**
+ * An Object with a structureType and an Array of x,y positions
+ * @typedef {Object} strLoc
+ * @property {structureType} strLoc.structureType - One of the STRUCTURE_* constants
+ * @property {}
+ */
+/**
+ * @typedef {Object[]} mTemplate
+ * @property
+ */
+
+/**
+ * HQ Template (rotatable square 5x5)
  * @constant
  */
 const HQTemplate = [
     'TO..T',
     'T.A.T',
     'TN.FT',
-    ' MSK '
+    ' MSK ',
+    '     '
 ];
 
 /**
- * Extension Template (rotatable diagonal 3x3)
+ * Extension Template (diagonal 3x3, square 5x5)
  * @constant
  */
 const extensionTemplate = [
