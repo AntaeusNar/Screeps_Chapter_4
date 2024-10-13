@@ -13,7 +13,7 @@
 // [ ] will need to ensure the layout is getting placed in an optimal place
 
 /**
- * a diagonal 5x5 template for the placement of a plus sign of extensions with surrounding roads
+ * a diagonal 3x3 template for the placement of a plus sign of extensions with surrounding roads
  * @constant
   */
 const extensionTemplate = [
@@ -26,6 +26,65 @@ const extensionTemplate = [
         "pos": [{"x": 2, "y": 0}, {"x": 1, "y": 1}, {"x": 0, "y": 2}, {"x": -1, "y": 1}, {"x": -2, "y": 0}, {"x": -1, "y": -1}, {"x": 0, "y": -2}, {"x": 1, "y": -1}]
     }
 ]
+
+/**
+ * A HQ template (should be rotatable) square 5x5
+ * @constant
+ */
+const HQTemplate = [
+    {
+        "structureType": STRUCTURE_SPAWN,
+        "pos": [{"x": 0, "y": 1}]
+    },
+    {
+        "structureType": STRUCTURE_STORAGE,
+        "pos": [{"x": 0, "y": -1}]
+    },
+    {
+        "structureType": STRUCTURE_LINK,
+        "pos": [{"x": 1, "y": -1}]
+    },
+    {
+        "structureType": STRUCTURE_TERMINAL,
+        "pos": [{"x": -1, "y": -1}]
+    },
+    {
+        "structureType": STRUCTURE_NUKER,
+        "pos": [{"x": -1, "y": 0}]
+    },
+    {
+        "structureType": STRUCTURE_FACTORY,
+        "pos": [{"x": 1, "y": 0}]
+    },
+    {
+        "structureType": STRUCTURE_OBSERVER,
+        "pos": [{"x": -1, "y": 2}]
+    },
+    {
+        "structureType": STRUCTURE_TOWER,
+        "pos": [{"x": -2, "y": 2}, {"x": -2, "y": 1}, {"x": -2, "y": 0}, {"x": 2, "y": 2}, {"x": -1, "y": 1}, {"x": 2, "y": 0}]
+    },
+    {
+        "structureType": STRUCTURE_ROAD,
+        "pos": [{"x": 0, "y": 2}, {"x": 1, "y": 2}, {"x": -1, "y": 1}, {"x": 1, "y": 1}, {"x": 0, "y": 0}]
+    }
+]
+
+/**
+ * a template for a 4x4 10 lab diagonal road that is rotatable
+ * @constant
+ */
+const labTemplate = [
+    {
+        "structureType": STRUCTURE_LAB,
+        "pos": [{"x": -1, "y": 0}, {"x": 0, "y": -1}, {"x": -1, "y": 1}, {"x": -2, "y": 0}, {"x": 0, "y": -2}, {"x": 1, "y": -1}, {"x": 1, "y": 0}, {"x": -1, "y": -2}, {"x": -2, "y": -1}, {"x": 0, "y": 1}]
+    },
+    {
+        "structureType": STRUCTURE_ROAD,
+        "pos": [{"x": 1, "y": 1}, {"x": 0, "y": 0}, {"x": -1, "y": -1}, {"x": -2, "y": -2}]
+    }
+]
+
 
 /**
  * Function to find the best center for any given template
