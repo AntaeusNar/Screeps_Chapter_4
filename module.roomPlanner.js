@@ -8,7 +8,7 @@
 // [x] will need location(s) to place the construction site
 // [x] will need to ensure that the room's control level is enough to place the construction sites
 // [x] will need to group those locations together (templates)
-// [ ] switch to using a human-readable transform
+// [x] switch to using a human-readable transform
 // [ ] will need to have a 'center' in the actual room to position the template
 // [ ] will need to ensure there is enough space to place the layout
 // [ ] will need to ensure the layout is getting placed in an optimal place
@@ -42,14 +42,10 @@ const layoutKey = {
  */
 
 /**
- * An Object with a structureType and an Array of x,y positions
- * @typedef {Object} strLoc
+ * A machine readable template is an array of objects.  Each object has a structureType, and a array of pos (x, y cords)
+ * @typedef {Object[]} strLoc
  * @property {structureType} strLoc.structureType - One of the STRUCTURE_* constants
- * @property {}
- */
-/**
- * @typedef {Object[]} mTemplate
- * @property
+ * @property {Object[]} strLoc - array of x, y cords relative to center of the template
  */
 
 /**
@@ -76,21 +72,6 @@ const extensionTemplate = [
     '  .  '
 ];
 
-/**
- * Machine Version as example
- * a diagonal 3x3 template for the placement of a plus sign of extensions with surrounding roads
- * @constant
-  */
-const extensionMachineTemplate = [
-    {
-        "structureType": STRUCTURE_EXTENSION,
-        "pos": [{"x": 0, "y": 0}, {"x": 0, "y": 1}, {"x": 0, "y": -1}, {"x": 1, "y": 0}, {"x": -1, "y": 0}]
-    },
-    {
-        "structureType": STRUCTURE_ROAD,
-        "pos": [{"x": 2, "y": 0}, {"x": 1, "y": 1}, {"x": 0, "y": 2}, {"x": -1, "y": 1}, {"x": -2, "y": 0}, {"x": -1, "y": -1}, {"x": 0, "y": -2}, {"x": 1, "y": -1}]
-    }
-]
 
 /**
  * Lab Template (rotatable diagonal 4x4)
@@ -104,19 +85,30 @@ const labTemplate = [
 ];
 
 /**
- * Function to transform the human template to a machine template
- * @param {Object} layoutKey - key
+ * Function to transform the human readable template to a machine readable formate
  * @param {String[]} hTemp - human readable template
- * @returns {Object[]} machine readable template
+ * @returns {strLoc}
  */
+function humanToMachineLayout(hTemp) {
+    const height = hTemp.length;
+    const width = hTemp[0].length;
+    const top = height / 2 | 0;
+    const left = width / 2 | 0;
 
-/**
- * Function to find the best center for any given template
- */
+    let mTemp = [];
+    for (let y = 0; y < height; y ++) {
+        for (let x =0; x < width; x++) {
+            const char = hTemp[y][x];
+            // TODO: finsih
+        }
+    }
+
+}
+
 /**
  * Function to build construction sites from a template
  * @param {RoomPosition} center - the center of the template
- * @param {Array} template - the template to be built
+ * @param {strLoc} template - the template to be built
  * @returns {Number} OK or ERR
  */
 function buildFromTemplate(center, template) {
